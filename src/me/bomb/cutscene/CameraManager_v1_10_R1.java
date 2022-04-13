@@ -60,7 +60,7 @@ private static final PacketPlayOutWindowItems packetemptywindowitems;
 	
 	static {
 		ArrayList<ItemStack> nnl = new ArrayList<ItemStack>();
-		for (int slot = 0; slot < 46; slot++) {
+		for (byte slot = 0; slot < 46; slot++) {
 			nnl.add(slot, new ItemStack(Item.getById(0)));
 		}
 		packetemptywindowitems = new PacketPlayOutWindowItems(0, nnl);

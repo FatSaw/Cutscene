@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.bukkit.entity.Player;
 
 public abstract class CameraManager {
+	
 	protected HashMap<UUID, RouteProvider> pos = new HashMap<UUID, RouteProvider>();
 	protected HashMap<UUID, Object> eas = new HashMap<UUID, Object>();
 
