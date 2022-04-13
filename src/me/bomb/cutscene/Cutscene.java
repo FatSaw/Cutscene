@@ -30,6 +30,10 @@ public class Cutscene extends JavaPlugin implements Listener {
 	public void onEnable() {
 		routefile = new File(getDataFolder() + File.separator + "route.yml");
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
+		case "v1_18_R2":
+			cameramanager = new CameraManager_v1_18_R2();
+			supported = true;
+			break;
 		case "v1_17_R1":
 			cameramanager = new CameraManager_v1_17_R1();
 			supported = true;
@@ -93,7 +97,7 @@ public class Cutscene extends JavaPlugin implements Listener {
 			}
 		} else {
 			getLogger().log(Level.WARNING, "Unsupported version!");
-			getLogger().log(Level.WARNING, "Supported versions: 1.8.4(+4),1.9.4,1.10(+2),1.11(+2),1.12(+2),1.13.2,1.14(+3),1.15(+2),1.16.4(+1),1.17(+1)");
+			getLogger().log(Level.WARNING, "Supported versions: 1.8.4(+4),1.9.4,1.10(+2),1.11(+2),1.12(+2),1.13.2,1.14(+3),1.15(+2),1.16.4(+1),1.17(+1),1.18.2");
 			getServer().getPluginManager().disablePlugin(this);
 		}
 	}
@@ -304,6 +308,8 @@ public class Cutscene extends JavaPlugin implements Listener {
 
 	protected String getLocale(Player player) {
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
+		case "v1_18_R2":
+			return ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_17_R1":
 			return ((org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_16_R3":
