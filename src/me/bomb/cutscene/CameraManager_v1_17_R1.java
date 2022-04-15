@@ -142,27 +142,28 @@ class CameraManager_v1_17_R1 extends CameraManager {
 	
 	public void startroute(Player player, RouteProvider route,CameraType type) {
 		if(route.isValid()) {
+			EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 			LocationPoint loc = route.getNext();
 			EntityLiving entity = null;
 			switch (type) {
 			case NORMAL:
-				EntityArmorStand stand = new EntityArmorStand(((CraftWorld) player.getWorld()).getHandle(), loc.getX(), loc.getY()-Consts.armorstandeyeheight, loc.getZ());
+				EntityArmorStand stand = new EntityArmorStand(entityplayer.t, loc.getX(), loc.getY()-Consts.armorstandeyeheight, loc.getZ());
 				stand.setYRot(loc.getYaw());
 				stand.setXRot(loc.getPitch());
 				entity = stand;
 			break;
 			case GREEN:
-				EntityCreeper creeper = new EntityCreeper(EntityTypes.o,((CraftWorld) player.getWorld()).getHandle());
+				EntityCreeper creeper = new EntityCreeper(EntityTypes.o,entityplayer.t);
 				creeper.setLocation(loc.getX(), loc.getY()-Consts.creepereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = creeper;
 			break;
 			case NEGATIVE:
-				EntityEnderman enderman = new EntityEnderman(EntityTypes.w,((CraftWorld) player.getWorld()).getHandle());
+				EntityEnderman enderman = new EntityEnderman(EntityTypes.w,entityplayer.t);
 				enderman.setLocation(loc.getX(), loc.getY()-Consts.endermaneyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = enderman;
 			break;
 			case SPLIT:
-				EntitySpider spider = new EntitySpider(EntityTypes.aI,((CraftWorld) player.getWorld()).getHandle());
+				EntitySpider spider = new EntitySpider(EntityTypes.aI,entityplayer.t);
 				spider.setLocation(loc.getX(), loc.getY()-Consts.spidereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = spider;
 			break;
@@ -177,7 +178,6 @@ class CameraManager_v1_17_R1 extends CameraManager {
 				entity.u = loc.getX();
 				entity.v = loc.getY();
 				entity.w = loc.getZ();
-				EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 				if(Cutscene.api) {
 					SceneStartEvent sse = new SceneStartEvent(player, route, type);
 					Bukkit.getPluginManager().callEvent(sse);

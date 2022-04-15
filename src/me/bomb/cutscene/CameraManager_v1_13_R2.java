@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_13_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_13_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -140,26 +139,27 @@ private static final PacketPlayOutWindowItems packetemptywindowitems;
 
 	public void startroute(Player player, RouteProvider route, CameraType type) {
 		if (route.isValid()) {
+			EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 			LocationPoint loc = route.getNext();
 			EntityLiving entity = null;
 			switch (type) {
 			case NORMAL:
-				EntityArmorStand stand = new EntityArmorStand(((CraftWorld) player.getWorld()).getHandle());
+				EntityArmorStand stand = new EntityArmorStand(entityplayer.world);
 				stand.setLocation(loc.getX(), loc.getY() - Consts.armorstandeyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = stand;
 				break;
 			case GREEN:
-				EntityCreeper creeper = new EntityCreeper(((CraftWorld) player.getWorld()).getHandle());
+				EntityCreeper creeper = new EntityCreeper(entityplayer.world);
 				creeper.setLocation(loc.getX(), loc.getY() - Consts.creepereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = creeper;
 				break;
 			case NEGATIVE:
-				EntityEnderman enderman = new EntityEnderman(((CraftWorld) player.getWorld()).getHandle());
+				EntityEnderman enderman = new EntityEnderman(entityplayer.world);
 				enderman.setLocation(loc.getX(), loc.getY() - Consts.endermaneyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = enderman;
 				break;
 			case SPLIT:
-				EntitySpider spider = new EntitySpider(((CraftWorld) player.getWorld()).getHandle());
+				EntitySpider spider = new EntitySpider(entityplayer.world);
 				spider.setLocation(loc.getX(), loc.getY() - Consts.spidereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = spider;
 				break;
@@ -174,7 +174,6 @@ private static final PacketPlayOutWindowItems packetemptywindowitems;
 				entity.lastX = loc.getX();
 				entity.lastY = loc.getY();
 				entity.lastZ = loc.getZ();
-				EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 				if (Cutscene.api) {
 					SceneStartEvent sse = new SceneStartEvent(player, route, type);
 					Bukkit.getPluginManager().callEvent(sse);
