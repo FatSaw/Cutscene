@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -142,27 +141,28 @@ class CameraManager_v1_18_R2 extends CameraManager {
 	
 	public void startroute(Player player, RouteProvider route,CameraType type) {
 		if(route.isValid()) {
+			EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 			LocationPoint loc = route.getNext();
 			EntityLiving entity = null;
 			switch (type) {
 			case NORMAL:
-				EntityArmorStand stand = new EntityArmorStand(((CraftWorld) player.getWorld()).getHandle(), loc.getX(), loc.getY()-Consts.armorstandeyeheight, loc.getZ());
+				EntityArmorStand stand = new EntityArmorStand(entityplayer.s, loc.getX(), loc.getY()-Consts.armorstandeyeheight, loc.getZ());
 				stand.o(loc.getYaw());
 				stand.p(loc.getPitch());
 				entity = stand;
 			break;
 			case GREEN:
-				EntityCreeper creeper = new EntityCreeper(EntityTypes.o,((CraftWorld) player.getWorld()).getHandle());
+				EntityCreeper creeper = new EntityCreeper(EntityTypes.o,entityplayer.s);
 				creeper.a(loc.getX(), loc.getY()-Consts.creepereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = creeper;
 			break;
 			case NEGATIVE:
-				EntityEnderman enderman = new EntityEnderman(EntityTypes.w,((CraftWorld) player.getWorld()).getHandle());
+				EntityEnderman enderman = new EntityEnderman(EntityTypes.w,entityplayer.s);
 				enderman.a(loc.getX(), loc.getY()-Consts.endermaneyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = enderman;
 			break;
 			case SPLIT:
-				EntitySpider spider = new EntitySpider(EntityTypes.aI,((CraftWorld) player.getWorld()).getHandle());
+				EntitySpider spider = new EntitySpider(EntityTypes.aI,entityplayer.s);
 				spider.a(loc.getX(), loc.getY()-Consts.spidereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
 				entity = spider;
 			break;
@@ -177,7 +177,6 @@ class CameraManager_v1_18_R2 extends CameraManager {
 				entity.t = loc.getX();
 				entity.u = loc.getY();
 				entity.v = loc.getZ();
-				EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
 				if(Cutscene.api) {
 					SceneStartEvent sse = new SceneStartEvent(player, route, type);
 					Bukkit.getPluginManager().callEvent(sse);
