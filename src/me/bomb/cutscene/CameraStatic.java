@@ -6,7 +6,7 @@ public class CameraStatic extends RouteProvider {
 	private LocationPoint locationpoint;
 	private int time;
 	
-	CameraStatic(String routename,Location location,int time) {
+	public CameraStatic(String routename,Location location,int time) {
 		super(routename, location.getWorld());
 		this.locationpoint = new LocationPoint(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 		this.time = time;
