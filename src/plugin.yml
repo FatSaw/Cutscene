@@ -7,14 +7,4 @@ api-version: 1.13
 commands:
   playscene:
     description: Play cutscene
-    permission: cutscene.playscene
     usage: /<command> <route> <camera> <player>
-permissions:
-  cutscene.playscene:
-    description: Allow play cutscene for self
-    default: op
-  cutscene.playscene.other:
-    description: Allow play cutscene for other
-    default: op
-    children:
-      cutscene.playscene: true
