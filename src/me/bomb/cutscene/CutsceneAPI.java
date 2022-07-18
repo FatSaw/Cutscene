@@ -6,6 +6,9 @@ public class CutsceneAPI {
 	protected final static CameraManager cameramanager;
 	static {
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
+		case "v1_19_R1":
+			cameramanager = new CameraManager_v1_19_R1();
+			break;
 		case "v1_18_R2":
 			cameramanager = new CameraManager_v1_18_R2();
 			break;

@@ -21,7 +21,7 @@ public class Cutscene extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
-		case "v1_18_R2": case "v1_17_R1":case "v1_16_R3":case "v1_15_R1":case "v1_14_R1":case "v1_13_R2":case "v1_12_R1":case "v1_11_R1":case "v1_10_R1":case "v1_9_R2":case "v1_8_R3":
+		case "v1_19_R1": case "v1_18_R2": case "v1_17_R1":case "v1_16_R3":case "v1_15_R1":case "v1_14_R1":case "v1_13_R2":case "v1_12_R1":case "v1_11_R1":case "v1_10_R1":case "v1_9_R2":case "v1_8_R3":
 			if(CutsceneAPI.cameramanager == null) {
 				getLogger().log(Level.WARNING, "Error on loading CameraManager!");
 				getServer().getPluginManager().disablePlugin(this);
@@ -76,7 +76,7 @@ public class Cutscene extends JavaPlugin {
 			break;
 		default:
 			getLogger().log(Level.WARNING, "Unsupported version!");
-			getLogger().log(Level.WARNING, "Supported versions: 1.8.4(+4),1.9.4,1.10(+2),1.11(+2),1.12(+2),1.13.2,1.14(+3),1.15(+2),1.16.4(+1),1.17(+1),1.18.2");
+			getLogger().log(Level.WARNING, "Supported versions: 1.8.4(+4),1.9.4,1.10(+2),1.11(+2),1.12(+2),1.13.2,1.14(+3),1.15(+2),1.16.4(+1),1.17(+1),1.18.2,1.19");
 			getServer().getPluginManager().disablePlugin(this);
 		}
 	}
