@@ -1,6 +1,6 @@
 name: Cutscene
 main: me.bomb.cutscene.Cutscene
-version: 0.11
+version: 0.12
 author: Bomb
 description: This plugin uses the entity spectator feature to play cutscenes.
 api-version: 1.13
