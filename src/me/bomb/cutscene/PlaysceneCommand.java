@@ -153,6 +153,8 @@ public class PlaysceneCommand implements CommandExecutor {
 	
 	private static String getLocale(Player player) {
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
+		case "v1_19_R1":
+			return ((org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_18_R2":
 			return ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_17_R1":
