@@ -2,6 +2,9 @@ package me.bomb.cutscene;
 
 import org.bukkit.Location;
 
+import me.bomb.cutscene.internal.LocationPoint;
+import me.bomb.cutscene.internal.RouteProvider;
+
 public class CameraStatic extends RouteProvider {
 	private LocationPoint locationpoint;
 	private int time;

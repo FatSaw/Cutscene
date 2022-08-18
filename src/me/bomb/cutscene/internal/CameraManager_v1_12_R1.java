@@ -1,12 +1,10 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.internal;
 
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -14,6 +12,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
+import me.bomb.cutscene.CameraType;
 import net.minecraft.server.v1_12_R1.PlayerConnection;
 import net.minecraft.server.v1_12_R1.EntityArmorStand;
 import net.minecraft.server.v1_12_R1.EntityCreeper;
@@ -50,6 +49,7 @@ import net.minecraft.server.v1_12_R1.PacketPlayOutPlayerInfo;
 import net.minecraft.server.v1_12_R1.PacketPlayOutSpawnEntityLiving;
 import net.minecraft.server.v1_12_R1.PacketPlayOutWindowItems;
 import net.minecraft.server.v1_12_R1.PacketPlayOutPlayerInfo.EnumPlayerInfoAction;
+import net.minecraft.server.v1_12_R1.PacketPlayOutAbilities;
 import net.minecraft.server.v1_12_R1.PacketPlayOutSetSlot;
 
 class CameraManager_v1_12_R1 extends CameraManager {
@@ -64,131 +64,11 @@ class CameraManager_v1_12_R1 extends CameraManager {
 		packetemptywindowitems = new PacketPlayOutWindowItems(0, nnl);
 	}
 
-	protected CameraManager_v1_12_R1() {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				Bukkit.getOnlinePlayers().forEach(player -> {
-					if (contains(player.getUniqueId())) {
-						EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
-						EntityLiving cameraentity = (EntityLiving) eas.get(player.getUniqueId());
-						RouteProvider route = pos.get(player.getUniqueId());
-						if (route.isValid() && route.hasNext()) {
-							LocationPoint loc = route.getNext();
-							if (cameraentity.lastX - loc.getX() >= 0.1 || loc.getX() - cameraentity.lastX >= 0.1 || cameraentity.lastY - loc.getY() >= 0.1 || loc.getY() - cameraentity.lastY >= 0.1 || cameraentity.lastZ - loc.getZ() >= 0.1 || loc.getZ() - cameraentity.lastZ >= 0.1) {
-								cameraentity.lastX = loc.getX();
-								cameraentity.lastY = loc.getY();
-								cameraentity.lastZ = loc.getZ();
-								if (cameraentity instanceof EntityArmorStand) {
-									cameraentity.setLocation(loc.getX(), loc.getY() - Consts.armorstandeyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-								} else if (cameraentity instanceof EntityCreeper) {
-									cameraentity.setLocation(loc.getX(), loc.getY() - Consts.creepereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-								} else if (cameraentity instanceof EntityEnderman) {
-									cameraentity.setLocation(loc.getX(), loc.getY() - Consts.endermaneyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-								} else if (cameraentity instanceof EntitySpider) {
-									cameraentity.setLocation(loc.getX(), loc.getY() - Consts.spidereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-								}
-								entityplayer.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(cameraentity));
-							}
-							entityplayer.playerConnection.sendPacket(new PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook(cameraentity.getId(),(short) 0,(short) 0,(short) 0,(byte) MathHelper.d(loc.getYaw() * 256.0F / 360.0F),(byte) MathHelper.d(loc.getPitch() * 256.0F / 360.0F), false));
-						} else {
-							if (Cutscene.api) {
-								CameraType cameratype = CameraType.NOT_SET;
-								if (cameraentity instanceof EntityArmorStand) {
-									cameratype = CameraType.NORMAL;
-								} else if (cameraentity instanceof EntityCreeper) {
-									cameratype = CameraType.GREEN;
-								} else if (cameraentity instanceof EntityEnderman) {
-									cameratype = CameraType.NEGATIVE;
-								} else if (cameraentity instanceof EntitySpider) {
-									cameratype = CameraType.SPLIT;
-								}
-								boolean despawn = true;
-								SceneEndEvent sceneendevent = new SceneEndEvent(player, route, cameratype);
-								Bukkit.getPluginManager().callEvent(sceneendevent);
-								if (sceneendevent.getNextRoute() != null && sceneendevent.getNextRoute().getRouteName().equals(route.getRouteName())) {
-									route.resetStage();
-									despawn = false;
-								} else {
-									RouteProvider newroute = sceneendevent.getNextRoute();
-									if (newroute != null && newroute.isValid()) {
-										pos.put(player.getUniqueId(), newroute);
-										despawn = false;
-									}
-								}
-								if (despawn == false) {
-									SceneStartEvent sse = new SceneStartEvent(player, pos.get(player.getUniqueId()), cameratype);
-									Bukkit.getPluginManager().callEvent(sse);
-									if (sse.isCanceled()) despawn = true;
-								}
-								if (despawn) {
-									despawnCamera(entityplayer, cameraentity);
-								}
-							} else {
-								despawnCamera(entityplayer, cameraentity);
-							}
-						}
-					}
-				});
-			}
-		}.runTaskTimerAsynchronously(Cutscene.getPlugin(Cutscene.class), 0L, 1);
-	}
-
-	public void startroute(Player player, RouteProvider route, CameraType type) {
-		if (route.isValid()) {
-			EntityPlayer entityplayer = ((CraftPlayer) player).getHandle();
-			LocationPoint loc = route.getNext();
-			EntityLiving entity = null;
-			switch (type) {
-			case NORMAL:
-				EntityArmorStand stand = new EntityArmorStand(entityplayer.world);
-				stand.setLocation(loc.getX(), loc.getY() - Consts.armorstandeyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-				entity = stand;
-				break;
-			case GREEN:
-				EntityCreeper creeper = new EntityCreeper(entityplayer.world);
-				creeper.setLocation(loc.getX(), loc.getY() - Consts.creepereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-				entity = creeper;
-				break;
-			case NEGATIVE:
-				EntityEnderman enderman = new EntityEnderman(entityplayer.world);
-				enderman.setLocation(loc.getX(), loc.getY() - Consts.endermaneyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-				entity = enderman;
-				break;
-			case SPLIT:
-				EntitySpider spider = new EntitySpider(entityplayer.world);
-				spider.setLocation(loc.getX(), loc.getY() - Consts.spidereyeheight, loc.getZ(), loc.getYaw(), loc.getPitch());
-				entity = spider;
-				break;
-			default:
-				break;
-			}
-			if (entity != null) {
-				entity.setNoGravity(true);
-				entity.setInvisible(true);
-				entity.setInvulnerable(true);
-				entity.setSilent(true);
-				entity.lastX = loc.getX();
-				entity.lastY = loc.getY();
-				entity.lastZ = loc.getZ();
-				if (Cutscene.api) {
-					SceneStartEvent sse = new SceneStartEvent(player, route, type);
-					Bukkit.getPluginManager().callEvent(sse);
-					if (!sse.isCanceled()) {
-						spawnCamera(entityplayer, route, entity);
-					}
-				} else {
-					spawnCamera(entityplayer, route, entity);
-				}
-			}
-		}
-	}
-
-	protected void registerHandler(Player player) {
+	protected void register(Player player) {
 		ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
 			@Override
 			public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
-				if (contains(player.getUniqueId())) {
+				if (contains(player)) {
 					if (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
 							|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
 							|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
@@ -204,7 +84,7 @@ class CameraManager_v1_12_R1 extends CameraManager {
 
 			@Override
 			public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
-				if (contains(player.getUniqueId())) {
+				if (contains(player)) {
 					if (packet instanceof PacketPlayOutWindowItems) {
 						packet = packetemptywindowitems;
 					}
@@ -249,7 +129,7 @@ class CameraManager_v1_12_R1 extends CameraManager {
 		pipeline.addBefore("packet_handler", "cutscene_" + player.getUniqueId(), channelDuplexHandler);
 	}
 
-	protected void unregisterHandler(Player player) {
+	protected void unregister(Player player) {
 		Channel channel = ((CraftPlayer) player).getHandle().playerConnection.networkManager.channel;
 		channel.eventLoop().submit(() -> {
 			channel.pipeline().remove("cutscene_" + player.getUniqueId());
@@ -257,25 +137,156 @@ class CameraManager_v1_12_R1 extends CameraManager {
 		});
 	}
 
-	private void spawnCamera(EntityPlayer entityplayer, RouteProvider route, EntityLiving cameraentity) {
-		eas.put(entityplayer.getUniqueID(), cameraentity);
-		pos.put(entityplayer.getUniqueID(), route);
+	protected void spawnCamera(Player player) {
+		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
+		if(!cameradata.containsKey(entityplayer.getUniqueID())) return;
+		CameraData data = cameradata.get(entityplayer.getUniqueID());
+		RouteProvider route = data.route;
+		EntityLiving cameraentity = null;
+		CameraType type = data.cameratype;
+		if(!route.hasNext()) return;
+		LocationPoint location = route.getNext();
+		switch (type) {
+		case NORMAL:
+			EntityArmorStand stand = new EntityArmorStand(entityplayer.world);
+			stand.setLocation(location.x, location.y - type.eyeheight, location.z, location.yaw, location.pitch);
+			cameraentity = stand;
+			break;
+		case GREEN:
+			EntityCreeper creeper = new EntityCreeper(entityplayer.world);
+			creeper.setLocation(location.x, location.y - type.eyeheight, location.z, location.yaw, location.pitch);
+			cameraentity = creeper;
+			break;
+		case NEGATIVE:
+			EntityEnderman enderman = new EntityEnderman(entityplayer.world);
+			enderman.setLocation(location.x, location.y - type.eyeheight, location.z, location.yaw, location.pitch);
+			cameraentity = enderman;
+			break;
+		case SPLIT:
+			EntitySpider spider = new EntitySpider(entityplayer.world);
+			spider.setLocation(location.x, location.y - type.eyeheight, location.z, location.yaw, location.pitch);
+			cameraentity = spider;
+			break;
+		default:
+			break;
+		}
+		if(cameraentity==null) return;
+		cameraentity.setNoGravity(true);
+		cameraentity.setInvisible(true);
+		cameraentity.setInvulnerable(true);
+		cameraentity.setSilent(true);
+		cameraentity.lastX = location.x;
+		cameraentity.lastY = location.y;
+		cameraentity.lastZ = location.z;
+		data.cameraentity = cameraentity;
+		
 		PlayerConnection connection = entityplayer.playerConnection;
 		connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE, entityplayer));
 		connection.sendPacket(packetemptywindowitems);
-		connection.sendPacket(new PacketPlayOutGameStateChange(3, -1));
+		connection.sendPacket(new PacketPlayOutGameStateChange(3, 3));
 		connection.sendPacket(new PacketPlayOutSpawnEntityLiving(cameraentity));
 		connection.sendPacket(new PacketPlayOutCamera(cameraentity));
 	}
 	
-	private void despawnCamera(EntityPlayer entityplayer, EntityLiving cameraentity) {
-		eas.remove(entityplayer.getUniqueID());
-		pos.remove(entityplayer.getUniqueID());
+	protected void updateCameraType(Player player) {
+		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
+		if(!cameradata.containsKey(entityplayer.getUniqueID())) return;
+		CameraData data = cameradata.get(entityplayer.getUniqueID());
+		if(data.cameraentity==null || data.cameratype==null) return;
+		EntityLiving oldcameraentity = (EntityLiving) data.cameraentity;
+		CameraType newtype = data.cameratype;
+		CameraType oldtype = null;
+		if (oldcameraentity instanceof EntityArmorStand) {
+			oldtype = CameraType.NORMAL;
+		} else if (oldcameraentity instanceof EntityCreeper) {
+			oldtype = CameraType.GREEN;
+		} else if (oldcameraentity instanceof EntityEnderman) {
+			oldtype = CameraType.NEGATIVE;
+		} else if (oldcameraentity instanceof EntitySpider) {
+			oldtype = CameraType.SPLIT;
+		}
+		if(newtype==oldtype) return;
+		EntityLiving newcameraentity = null;
+
+		switch (newtype) {
+		case NORMAL:
+			EntityArmorStand stand = new EntityArmorStand(entityplayer.world);
+			stand.setLocation(oldcameraentity.locX, oldcameraentity.locY + oldtype.eyeheight - newtype.eyeheight, oldcameraentity.locZ, oldcameraentity.yaw, oldcameraentity.pitch);
+			newcameraentity = stand;
+			break;
+		case GREEN:
+			EntityCreeper creeper = new EntityCreeper(entityplayer.world);
+			creeper.setLocation(oldcameraentity.locX, oldcameraentity.locY + oldtype.eyeheight - newtype.eyeheight, oldcameraentity.locZ, oldcameraentity.yaw, oldcameraentity.pitch);
+			newcameraentity = creeper;
+			break;
+		case NEGATIVE:
+			EntityEnderman enderman = new EntityEnderman(entityplayer.world);
+			enderman.setLocation(oldcameraentity.locX, oldcameraentity.locY + oldtype.eyeheight - newtype.eyeheight, oldcameraentity.locZ, oldcameraentity.yaw, oldcameraentity.pitch);
+			newcameraentity = enderman;
+			break;
+		case SPLIT:
+			EntitySpider spider = new EntitySpider(entityplayer.world);
+			spider.setLocation(oldcameraentity.locX, oldcameraentity.locY + oldtype.eyeheight - newtype.eyeheight, oldcameraentity.locZ, oldcameraentity.yaw, oldcameraentity.pitch);
+			newcameraentity = spider;
+			break;
+		default:
+			break;
+		}
+		if(newcameraentity==null) return;
+		newcameraentity.setNoGravity(true);
+		newcameraentity.setInvisible(true);
+		newcameraentity.setInvulnerable(true);
+		newcameraentity.setSilent(true);
+		newcameraentity.lastX = oldcameraentity.lastX;
+		newcameraentity.lastY = oldcameraentity.lastY;
+		newcameraentity.lastZ = oldcameraentity.lastZ;
+		data.cameraentity = newcameraentity;
+		
 		PlayerConnection connection = entityplayer.playerConnection;
-		connection.sendPacket(new PacketPlayOutCamera(entityplayer));
+		connection.sendPacket(new PacketPlayOutSpawnEntityLiving(newcameraentity));
+		connection.sendPacket(new PacketPlayOutCamera(newcameraentity));
+		connection.sendPacket(new PacketPlayOutEntityDestroy(oldcameraentity.getId()));
+	}
+	
+	protected void updateCameraLocation(Player player) {
+		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
+		if(!cameradata.containsKey(entityplayer.getUniqueID())) return;
+		CameraData data = cameradata.get(entityplayer.getUniqueID());
+		RouteProvider route = data.route;
+		if(!route.hasNext() || data.cameraentity == null || data.cameratype == null) return;
+		EntityLiving cameraentity = (EntityLiving) data.cameraentity;
+		LocationPoint location = route.getNext();
+		
+		PlayerConnection connection = entityplayer.playerConnection;
+		if (location.hasMove(cameraentity.lastX, cameraentity.lastY, cameraentity.lastZ)) {
+			cameraentity.lastX = location.x;
+			cameraentity.lastY = location.y;
+			cameraentity.lastZ = location.z;
+			cameraentity.setLocation(location.x, location.y - data.cameratype.eyeheight, location.z, location.yaw, location.pitch);
+			connection.sendPacket(new PacketPlayOutEntityTeleport(cameraentity));
+		}
+		connection.sendPacket(new PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook(cameraentity.getId(),(short) 0,(short) 0,(short) 0,(byte) MathHelper.d(location.yaw * 256.0F / 360.0F),(byte) MathHelper.d(location.pitch * 256.0F / 360.0F), false));
+	}
+	
+	protected void despawnCamera(Player player) {
+		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
+		if(!cameradata.containsKey(entityplayer.getUniqueID())) return;
+		CameraData data = cameradata.get(entityplayer.getUniqueID());
+		EntityLiving cameraentity = (EntityLiving) data.cameraentity;
+		
+		PlayerConnection connection = entityplayer.playerConnection;
 		connection.sendPacket(new PacketPlayOutEntityDestroy(cameraentity.getId()));
+	}
+
+	@Override
+	protected void restore(Player player) {
+		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
+		
+		PlayerConnection connection = entityplayer.playerConnection;
+		connection.sendPacket(new PacketPlayOutCamera(entityplayer.getSpecatorTarget()));
 		connection.sendPacket(new PacketPlayOutGameStateChange(3,entityplayer.playerInteractManager.getGameMode().getId()));
 		connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE,entityplayer));
+		connection.sendPacket(new PacketPlayOutAbilities(entityplayer.abilities));
 		entityplayer.updateInventory(entityplayer.defaultContainer);
 	}
 	

@@ -18,7 +18,7 @@ public class PlaysceneTabCompleter implements TabCompleter {
 			if (player.hasPermission("cutscene.playscene") || player.hasPermission("cutscene.playscene.other")) {
 				if (args.length == 1) {
 					for (String routename : Cutscene.routedata.getKeys(false)) {
-						if (routename.startsWith(args[0]) && ((Cutscene.routedata.contains(routename + ".world") && Cutscene.routedata.isString(routename + ".world") && player.getWorld().getName().equals(Cutscene.routedata.getString(routename + ".world"))) || player.hasPermission("cutscene.playscene.other"))) {
+						if(routename.startsWith(args[0]) && (player.hasPermission("cutscene.playscene.other") || !Cutscene.routedata.isString(routename + ".world") || player.getWorld().getName().equals(Cutscene.routedata.getString(routename + ".world")))) {
 							tabcomplete.add(routename);
 						}
 					}

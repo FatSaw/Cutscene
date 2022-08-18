@@ -1,10 +1,14 @@
 package me.bomb.cutscene;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import me.bomb.cutscene.Route.RouteLocationPoint;
+import me.bomb.cutscene.internal.CameraManager;
 
 public class PlaysceneCommand implements CommandExecutor {
 
@@ -17,7 +21,7 @@ public class PlaysceneCommand implements CommandExecutor {
 				if (args.length > 1) {
 					String routename = args[0];
 					String cameratype = args[1].toLowerCase();
-					CameraType type = CameraType.NOT_SET;
+					CameraType type = null;
 					switch (cameratype) {
 					case "normal":
 						type = CameraType.NORMAL;
@@ -47,7 +51,7 @@ public class PlaysceneCommand implements CommandExecutor {
 							return true;
 						}
 					}
-					if (CutsceneAPI.cameramanager.contains(targetplayer.getUniqueId())) {
+					if (CameraManager.contains(targetplayer)) {
 						String msgalreadyplayingscene = Cutscene.lang.getString(getLocale(player) + ".alreadyplayingscene",Cutscene.lang.getString("default.alreadyplayingscene", ""));
 						if (!msgalreadyplayingscene.isEmpty())
 							player.sendMessage(msgalreadyplayingscene);
@@ -55,27 +59,26 @@ public class PlaysceneCommand implements CommandExecutor {
 						boolean ok = false;
 						if (Cutscene.routedata.getKeys(false).contains(routename)) {
 							try {
-								Route route = new Route(routename, targetplayer.getEyeLocation());
-								if (route.isValid() && route.getWorld().equals(targetplayer.getWorld())) {
-									if (type.equals(CameraType.NOT_SET)) {
+								Location targeteyelocation = targetplayer.getEyeLocation();
+								Route route = Route.readRoute(Cutscene.routedata, routename, new RouteLocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
+								if (route.world == null || route.world == targetplayer.getWorld()) {
+									if (type==null) {
 										String msgunknowncameratype = Cutscene.lang.getString(getLocale(player) + ".unknowncameratype",Cutscene.lang.getString("default.unknowncameratype", ""));
 										if (!msgunknowncameratype.isEmpty())
 											player.sendMessage(msgunknowncameratype);
 										ok = true;
 									} else {
-										CutsceneAPI.cameramanager.startroute(targetplayer, route, type);
+										CameraManager.put(targetplayer, route, type);
 										String msgplayingscene = Cutscene.lang.getString(getLocale(player) + ".playingscene",Cutscene.lang.getString("default.playingscene", ""));
 										if (!msgplayingscene.isEmpty())
 											player.sendMessage(msgplayingscene);
 										ok = true;
 									}
 								} else {
-									if (!player.getUniqueId().equals(targetplayer.getUniqueId())) {
-										String msgplayerinanotherworld = Cutscene.lang.getString(getLocale(player) + ".playerinanotherworld",Cutscene.lang.getString("default.playerinanotherworld", ""));
-										if (!msgplayerinanotherworld.isEmpty())
-											player.sendMessage(msgplayerinanotherworld);
-										ok = true;
-									}
+									String msgplayerinanotherworld = Cutscene.lang.getString(getLocale(player) + ".playerinanotherworld",Cutscene.lang.getString("default.playerinanotherworld", ""));
+									if (!msgplayerinanotherworld.isEmpty())
+										player.sendMessage(msgplayerinanotherworld);
+									ok = true;
 								}
 							} catch (IllegalArgumentException e) {
 							}
@@ -100,10 +103,10 @@ public class PlaysceneCommand implements CommandExecutor {
 			if (args.length == 3) {
 				Player targetplayer = Bukkit.getPlayerExact(args[2]);
 				if (targetplayer != null) {
-					if (!CutsceneAPI.cameramanager.contains(targetplayer.getUniqueId())) {
+					if (!CameraManager.contains(targetplayer)) {
 						String routename = args[0];
 						String cameratype = args[1].toLowerCase();
-						CameraType type = CameraType.NOT_SET;
+						CameraType type = null;
 						switch (cameratype) {
 						case "normal":
 							type = CameraType.NORMAL;
@@ -121,14 +124,15 @@ public class PlaysceneCommand implements CommandExecutor {
 						boolean ok = false;
 						if (Cutscene.routedata.getKeys(false).contains(routename)) {
 							try {
-								Route route = new Route(routename, targetplayer.getEyeLocation());
-								if (route.isValid() && route.getWorld().equals(targetplayer.getWorld())) {
-									if (!type.equals(CameraType.NOT_SET)) {
-										CutsceneAPI.cameramanager.startroute(targetplayer, route, type);
-										sender.sendMessage("Start cutscene");
+								Location targeteyelocation = targetplayer.getEyeLocation();
+								Route route = Route.readRoute(Cutscene.routedata, routename, new RouteLocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
+								if (route.world == null || route.world == targetplayer.getWorld()) {
+									if (type==null) {
+										sender.sendMessage("Unknown camera type");
 										ok = true;
 									} else {
-										sender.sendMessage("Unknown camera type");
+										CameraManager.put(targetplayer, route, type);
+										sender.sendMessage("Start cutscene");
 										ok = true;
 									}
 								} else {
@@ -153,10 +157,6 @@ public class PlaysceneCommand implements CommandExecutor {
 	
 	private static String getLocale(Player player) {
 		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
-		case "v1_19_R1":
-			return ((org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_18_R2":
-			return ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_17_R1":
 			return ((org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		case "v1_16_R3":

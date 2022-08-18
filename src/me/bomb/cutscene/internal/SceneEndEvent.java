@@ -1,10 +1,12 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.internal;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-public final class SceneStartEvent extends Event {
+import me.bomb.cutscene.CameraType;
+
+public final class SceneEndEvent extends Event {
 	private static final HandlerList handlers = new HandlerList();
 
 	public HandlerList getHandlers() {
@@ -18,9 +20,11 @@ public final class SceneStartEvent extends Event {
 	private Player player;
 	private RouteProvider route;
 	private CameraType cameratype;
-	private boolean cancel = false;
+	protected CameraType newcameratype;
+	protected RouteProvider nextroute;
 
-	protected SceneStartEvent(Player player, RouteProvider route, CameraType cameratype) {
+	protected SceneEndEvent(Player player, RouteProvider route, CameraType cameratype) {
+		super(true);
 		this.player = player;
 		this.route = route;
 		this.cameratype = cameratype;
@@ -38,11 +42,11 @@ public final class SceneStartEvent extends Event {
 		return cameratype;
 	}
 
-	public void setCanceled(boolean cancel) {
-		this.cancel = cancel;
+	public void setNextRoute(RouteProvider nextroute) {
+		this.nextroute = nextroute;
 	}
-
-	public boolean isCanceled() {
-		return cancel;
+	
+	public void setCameraType(CameraType newcameratype) {
+		this.newcameratype = newcameratype;
 	}
 }
