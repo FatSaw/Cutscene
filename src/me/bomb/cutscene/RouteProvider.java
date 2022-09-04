@@ -1,21 +1,13 @@
 package me.bomb.cutscene;
 
-import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.configuration.file.FileConfiguration;
+
+import me.bomb.camerautil.LocationPoint;
 
 public abstract class RouteProvider {
-	private String routename;
+	public final String routename;
 	private int stage = 0;
-	private World world;
-	
-	protected RouteProvider(String routename) {
-		this.routename = routename;
-		FileConfiguration routedata = Cutscene.routedata;
-		if (routedata!=null && routedata.contains(routename + ".world") && routedata.isString(routename + ".world")) {
-			this.world = Bukkit.getWorld(routedata.getString(routename + ".world"));
-		}
-	}
+	public final World world;
 	
 	public RouteProvider(String routename,World world) {
 		this.routename = routename;
@@ -23,9 +15,10 @@ public abstract class RouteProvider {
 	}
 	
 	/**
-	 * Returns last LocationPoint.
+	 * Returns current LocationPoint.
+	 * Should call nextStage() if hasNext() true;
 	 * 
-	 * @return last LocationPoint.
+	 * @return current LocationPoint.
 	 */
 	public abstract LocationPoint getNext();
 	
@@ -35,18 +28,6 @@ public abstract class RouteProvider {
 	 * @return true if the cutscene continues.
 	 */
 	public abstract boolean hasNext();
-	
-	protected final boolean isValid() {
-		return world!=null;
-	}
-	
-	public final World getWorld() {
-		return world;
-	}
-	
-	public final String getRouteName() {
-		return routename;
-	}
 	
 	protected final void resetStage() {
 		this.stage = 0;
