@@ -4,6 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+import me.bomb.camerautil.CameraType;
+
 public final class SceneEndEvent extends Event {
 	private static final HandlerList handlers = new HandlerList();
 
@@ -41,6 +43,10 @@ public final class SceneEndEvent extends Event {
 
 	protected RouteProvider getNextRoute() {
 		return nextroute;
+	}
+
+	public void setCameraType(CameraType cameratype) {
+		this.cameratype = cameratype;
 	}
 
 	public void setNextRoute(RouteProvider nextroute) {
