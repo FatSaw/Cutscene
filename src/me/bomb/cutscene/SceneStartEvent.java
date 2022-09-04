@@ -4,6 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+import me.bomb.camerautil.CameraType;
+
 public final class SceneStartEvent extends Event {
 	private static final HandlerList handlers = new HandlerList();
 
