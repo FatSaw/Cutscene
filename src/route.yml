@@ -3,7 +3,6 @@
 # '~#(FORWARD/-BACK)#(UP/-DOWN)#(LEFT/-RIGHT)#YAW#PITCH#' Turns off reference to world coordinates. Automaticaly turns on relative movement for X,Y,Z.
 # '~#(FORWARD/-BACK)#(UP/-DOWN)#(LEFT/-RIGHT)#YAW#PITCH#OYAW#OPITCH#' The same as previous but YAW and PITCH overlaped by OYAW and OPITCH 
 defaultroute:
-  world: world
   locations:
   - '~#0#0#-0.4#~2#~0#'
   - '~#0#0#-0.4#~2#~0#'
