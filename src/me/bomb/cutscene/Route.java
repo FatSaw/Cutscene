@@ -1,84 +1,47 @@
 package me.bomb.cutscene;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import me.bomb.camerautil.LocationPoint;
+
 public class Route extends RouteProvider {
-	private ArrayList<RouteLocationPoint> locations = new ArrayList<RouteLocationPoint>();
-
-	public Route(String routename, Location... locations) {
-		super(routename, locations[0].getWorld());
-		int i = 0;
-		while (i < locations.length) {
-			Location location = locations[i];
-			RouteLocationPoint lp = new RouteLocationPoint(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-			this.locations.add(lp);
-			++i;
-		}
-		if (locations.length > 0) {
-			save();
-		}
-	}
+	private final List<RouteLocationPoint> locations;
 	
-	public Route(String routename, World world, RouteLocationPoint... locations) {
+	public Route(String routename, World world, List<RouteLocationPoint> locations) {
 		super(routename, world);
-		int i = 0;
-		while (i < locations.length) {
-			RouteLocationPoint lp = locations[i];
-			this.locations.add(lp);
-			++i;
-		}
-		if (locations.length > 0) {
-			save();
-		}
+		this.locations = locations;
 	}
 	
-	protected Route(String routename,Location startlocation) {
-		super(routename);
-		FileConfiguration routedata = Cutscene.routedata;
+	public static Route readRoute(FileConfiguration routedata,String routename,RouteLocationPoint previouslocation) {
 		if (routedata!=null && routedata.contains(routename) && routedata.isList(routename + ".locations")) {
-			int i = 0;
-			for (String location : routedata.getStringList(routename + ".locations")) {
-				RouteLocationPoint previouslocationpoint = null;
-				try {
-					if(i==0) {
-						byte cc = 0;
-						for(char c : location.toCharArray()) {
-							if('#' == c) ++cc;
-						}
-						if(cc==8){
-							previouslocationpoint = new RouteLocationPoint(startlocation.getX(), startlocation.getY(), startlocation.getZ(), startlocation.getYaw(), startlocation.getPitch(), startlocation.getYaw(), startlocation.getPitch());
-						} else {
-							previouslocationpoint = new RouteLocationPoint(startlocation.getX(), startlocation.getY(), startlocation.getZ(), startlocation.getYaw(), startlocation.getPitch());
-						}
-					} else {
-						previouslocationpoint = locations.get(i-1);
-					}
-				} catch (IndexOutOfBoundsException e) {
-				}
-				RouteLocationPoint lp = RouteLocationPoint.readroutelocationpointfromstring(location,previouslocationpoint);
-				if(lp!=null) {
-					locations.add(lp);
-					++i;
-				}
+			World world = null;
+			if (routedata.contains(routename + ".world") && routedata.isString(routename + ".world")) {
+				world = Bukkit.getWorld(routedata.getString(routename + ".world"));
 			}
-			locations.add(new RouteLocationPoint(startlocation.getX(), startlocation.getY(), startlocation.getZ(), startlocation.getYaw(), startlocation.getPitch()));
+			List<RouteLocationPoint> locations = new ArrayList<RouteLocationPoint>();
+			for (String location : routedata.getStringList(routename + ".locations")) {
+				RouteLocationPoint rlp = RouteLocationPoint.fromString(location, previouslocation);
+				locations.add(rlp);
+				previouslocation = rlp;
+			}
+			return new Route(routename, world, locations);
 		}
+		return null;
 	}
 
-	private void save() {
-		String routename = getRouteName();
-		FileConfiguration routedata = Cutscene.routedata;
-		if (routedata.contains(routename))
-			routedata.set(routename, null);
+	public void writeRoute(FileConfiguration routedata) {
+		if (routedata.contains(routename)) routedata.set(routename, null);
 		ArrayList<String> locationpoints = new ArrayList<String>();
-		for (LocationPoint locationpoint : locations) {
-			locationpoints.add(locationpoint.toPointString());
+		for (RouteLocationPoint locationpoint : locations) {
+			locationpoints.add(locationpoint.toString());
 		}
-		routedata.set(routename + ".world", getWorld().getName());
+		if(world!=null) routedata.set(routename + ".world", world.getName());
 		routedata.set(routename + ".locations", locationpoints);
 		Cutscene.saveRoutes();
 	}
@@ -88,22 +51,11 @@ public class Route extends RouteProvider {
 		return getStage() < locations.size();
 	}
 
-	public Location[] getLocations() {
-		Location[] locations = new Location[this.locations.size()];
-		int i = 0;
-		for (LocationPoint locationPoint : this.locations) {
-			locations[i] = locationPoint.toLocation(getWorld());
-			++i;
-		}
-		return locations;
-	}
-
 	@Override
 	public LocationPoint getNext() {
-		int locationssize = locations.size();
 		LocationPoint trl = null;
 		int stage = getStage();
-		if (stage < locationssize) {
+		if (stage < locations.size()) {
 			trl = locations.get(stage);
 			nextStage();
 		}
@@ -129,7 +81,7 @@ public class Route extends RouteProvider {
 			this.overrideyawpitch = true;
 		}
 		
-		private static RouteLocationPoint readroutelocationpointfromstring(String location,RouteLocationPoint previouslocation) {
+		private static RouteLocationPoint fromString(String location,RouteLocationPoint previouslocation) {
 			boolean overrideyawpitch = false;
 			String sx = "";
 			String sy = "";
@@ -233,10 +185,10 @@ public class Route extends RouteProvider {
 					
 					if (previouslocation!=null) {
 						if (relativeyaw) {
-							yaw += previouslocation.yaw;
+							yaw += previouslocation.getYaw();
 						}
 						if (relativepitch) {
-							pitch += previouslocation.pitch;
+							pitch += previouslocation.getPitch();
 						}
 						if (relativelocation) {
 							if (x == -0.0D) {
@@ -294,18 +246,18 @@ public class Route extends RouteProvider {
 							y=(forwardy+updy);
 							z=(forwardz+sidedz+updz);
 							
-							x += previouslocation.x;
-							y += previouslocation.y;
-							z += previouslocation.z;
+							x += previouslocation.getX();
+							y += previouslocation.getY();
+							z += previouslocation.getZ();
 						} else {
 							if (relativex) {
-								x += previouslocation.x;
+								x += previouslocation.getX();
 							}
 							if (relativey) {
-								y += previouslocation.y;
+								y += previouslocation.getY();
 							}
 							if (relativez) {
-								z += previouslocation.z;
+								z += previouslocation.getZ();
 							}
 						}
 					}
@@ -332,39 +284,53 @@ public class Route extends RouteProvider {
 		}
 		
 		@Override
-		protected String toPointString() {
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("#");
+			sb.append(super.getX());
+			sb.append("#");
+			sb.append(super.getY());
+			sb.append("#");
+			sb.append(super.getZ());
+			sb.append("#");
+			sb.append(super.getYaw());
+			sb.append("#");
+			sb.append(super.getPitch());
+			sb.append("#");
 			if (overrideyawpitch) {
-				return "#" + x + "#" + y + "#" + z + "#" + yaw + "#" + pitch + "#" + oyaw + "#" + opitch + "#";
+				sb.append(oyaw);
+				sb.append("#");
+				sb.append(opitch);
+				sb.append("#");
 			}
-			return "#" + x + "#" + y + "#" + z + "#" + yaw + "#" + pitch + "#";
+			return sb.toString();
 		}
 		
 		public boolean isOverrideYawPitch() {
 			return overrideyawpitch;
 		}
 		
-		@Override
 		public Location toLocation(World world) {
 			if (overrideyawpitch) {
-				return new Location(world, x, y, z, oyaw, opitch);
+				return new Location(world, super.getX(), super.getY(), super.getZ(), oyaw, opitch);
 			}
-			return new Location(world, x, y, z, yaw, pitch);
+			return new Location(world, super.getX(), super.getY(), super.getZ(), super.getYaw(), super.getPitch());
 		}
 		
 		@Override
-		protected float getYaw() {
+		public float getYaw() {
 			if (overrideyawpitch) {
 				return oyaw;
 			}
-			return yaw;
+			return super.getYaw();
 		}
 		
 		@Override
-		protected float getPitch() {
+		public float getPitch() {
 			if (overrideyawpitch) {
 				return opitch;
 			}
-			return pitch;
+			return super.getPitch();
 		}
 
 	}
