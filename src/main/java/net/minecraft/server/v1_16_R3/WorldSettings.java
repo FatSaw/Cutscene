@@ -1,0 +1,14 @@
+package net.minecraft.server.v1_16_R3;
+/**
+ * Fake nms
+ */
+public final class WorldSettings {
+	
+	public static enum EnumGamemode {
+		;
+		public int getId() {
+			return 0;
+		}
+	}
+	
+}
