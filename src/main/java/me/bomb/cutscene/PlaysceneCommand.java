@@ -12,6 +12,14 @@ import me.bomb.camerautil.CameraType;
 import me.bomb.cutscene.Route.RouteLocationPoint;
 
 public class PlaysceneCommand implements CommandExecutor {
+	
+	private final CameraManager cameramanager;
+	private final RouteExecutor routeexecutor;
+	
+	public PlaysceneCommand(CameraManager cameramanager, RouteExecutor routeexecutor) {
+		this.cameramanager = cameramanager;
+		this.routeexecutor = routeexecutor;
+	}
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -52,7 +60,7 @@ public class PlaysceneCommand implements CommandExecutor {
 							return true;
 						}
 					}
-					if (CameraManager.contains(targetplayer)) {
+					if (cameramanager.contains(targetplayer)) {
 						String msgalreadyplayingscene = Cutscene.lang.getString(getLocale(player) + ".alreadyplayingscene",Cutscene.lang.getString("default.alreadyplayingscene", ""));
 						if (!msgalreadyplayingscene.isEmpty())
 							player.sendMessage(msgalreadyplayingscene);
@@ -69,7 +77,7 @@ public class PlaysceneCommand implements CommandExecutor {
 											player.sendMessage(msgunknowncameratype);
 										ok = true;
 									} else {
-										RouteExecutor.put(targetplayer, route, type);
+										routeexecutor.put(targetplayer, route, type);
 										String msgplayingscene = Cutscene.lang.getString(getLocale(player) + ".playingscene",Cutscene.lang.getString("default.playingscene", ""));
 										if (!msgplayingscene.isEmpty())
 											player.sendMessage(msgplayingscene);
@@ -104,7 +112,7 @@ public class PlaysceneCommand implements CommandExecutor {
 			if (args.length == 3) {
 				Player targetplayer = Bukkit.getPlayerExact(args[2]);
 				if (targetplayer != null) {
-					if (!CameraManager.contains(targetplayer)) {
+					if (!cameramanager.contains(targetplayer)) {
 						String routename = args[0];
 						String cameratype = args[1].toLowerCase();
 						CameraType type = null;
@@ -132,7 +140,7 @@ public class PlaysceneCommand implements CommandExecutor {
 										sender.sendMessage("Unknown camera type");
 										ok = true;
 									} else {
-										RouteExecutor.put(targetplayer, route, type);
+										routeexecutor.put(targetplayer, route, type);
 										sender.sendMessage("Start cutscene");
 										ok = true;
 									}

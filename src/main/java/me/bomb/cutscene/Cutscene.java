@@ -13,12 +13,63 @@ import org.bukkit.plugin.java.JavaPlugin;
 import me.bomb.camerautil.CameraManager;
 import me.bomb.cutscene.Route.RouteLocationPoint;
 
-public class Cutscene extends JavaPlugin {
+public final class Cutscene extends JavaPlugin {
 	
 	protected static FileConfiguration routedata;
 	protected static YamlConfiguration lang;
 	private boolean supported = false;
 	private static File routefile;
+	
+	private final CameraManager cameramanager;
+	private final RouteExecutor routeexecutor;
+	
+	public Cutscene() {
+		CameraManager cameramanager = null;
+		try {
+			final String nmsversion = this.getServer().getClass().getPackage().getName().substring(23);
+			switch(nmsversion) {
+			case "v1_19_R1":
+				cameramanager = CameraManager.initialize(19);
+			break;
+			case "v1_18_R2":
+				cameramanager = CameraManager.initialize(18);
+			break;
+			case "v1_17_R1":
+				cameramanager = CameraManager.initialize(17);
+			break;
+			case "v1_16_R3":
+				cameramanager = CameraManager.initialize(16);
+			break;
+			case "v1_15_R1":
+				cameramanager = CameraManager.initialize(15);
+			break;
+			case "v1_14_R1":
+				cameramanager = CameraManager.initialize(14);
+			break;
+			case "v1_13_R2":
+				cameramanager = CameraManager.initialize(13);
+			break;
+			case "v1_12_R1":
+				cameramanager = CameraManager.initialize(12);
+			break;
+			case "v1_11_R1":
+				cameramanager = CameraManager.initialize(11);
+			break;
+			case "v1_10_R1":
+				cameramanager = CameraManager.initialize(10);
+			break;
+			case "v1_9_R2":
+				cameramanager = CameraManager.initialize(9);
+			break;
+			case "v1_8_R3":
+				cameramanager = CameraManager.initialize(8);
+			break;
+			}
+		} catch (Exception e) {
+		}
+		this.cameramanager = cameramanager;
+		this.routeexecutor = new RouteExecutor(cameramanager);
+	}
 	
 	@Override
 	public void onEnable() {
@@ -46,7 +97,7 @@ public class Cutscene extends JavaPlugin {
 				return;
 			}
 			try {
-				Bukkit.getPluginManager().registerEvents(new JoinQuitListener(), this);
+				Bukkit.getPluginManager().registerEvents(new JoinQuitListener(this.cameramanager), this);
 			} catch (Exception e) {
 				getLogger().log(Level.WARNING, "Error on register events!");
 				getServer().getPluginManager().disablePlugin(this);
@@ -54,7 +105,7 @@ public class Cutscene extends JavaPlugin {
 			}
 			try {
 				PluginCommand playscenecommand = getCommand("playscene");
-				playscenecommand.setExecutor(new PlaysceneCommand());
+				playscenecommand.setExecutor(new PlaysceneCommand(this.cameramanager, this.routeexecutor));
 				playscenecommand.setTabCompleter(new PlaysceneTabCompleter());
 			} catch (Exception e) {
 				getLogger().log(Level.WARNING, "Error on register playscene command!");
@@ -62,9 +113,9 @@ public class Cutscene extends JavaPlugin {
 				return;
 			}
 			Bukkit.getOnlinePlayers().forEach(player -> {
-				CameraManager.registerHandler(player);
+				cameramanager.registerHandler(player);
 			});
-			RouteExecutor.init(this);
+			routeexecutor.start();
 			getLogger().log(Level.INFO, "Plugin enabeled!");
 			supported = true;
 			break;
@@ -76,8 +127,9 @@ public class Cutscene extends JavaPlugin {
 	
 	public void onDisable() {
 		if (supported) {
+			routeexecutor.end();
 			Bukkit.getOnlinePlayers().forEach(player -> {
-				CameraManager.unregisterHandler(player);
+				cameramanager.unregisterHandler(player);
 			});
 		}
 	}
