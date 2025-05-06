@@ -11,7 +11,7 @@ public final class EntityPlayer extends Entity {
 	public int dimension, expTotal, expLevel;
 	public double locX, locY, locZ;
 	public float yaw, pitch, exp;
-	public Container defaultContainer;
+	public ContainerPlayer defaultContainer;
 	public PlayerAbilities abilities;
 	public World world;
 	public PlayerInteractManager playerInteractManager;
@@ -25,7 +25,7 @@ public final class EntityPlayer extends Entity {
 		return null;
 	}
 	
-	public EntityLiving C() {
+	public Entity C() {
 		return null;
 	}
 	

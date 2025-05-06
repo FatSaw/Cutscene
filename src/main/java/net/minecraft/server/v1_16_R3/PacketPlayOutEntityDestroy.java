@@ -3,7 +3,7 @@ package net.minecraft.server.v1_16_R3;
  * Fake nms
  */
 public final class PacketPlayOutEntityDestroy implements Packet<PacketPlayOutEntityDestroy> {
-	public PacketPlayOutEntityDestroy(int id) {
+	public PacketPlayOutEntityDestroy(int... ids) {
 		
 	}
 

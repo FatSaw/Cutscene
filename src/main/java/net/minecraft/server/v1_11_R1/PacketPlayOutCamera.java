@@ -3,7 +3,7 @@ package net.minecraft.server.v1_11_R1;
  * Fake nms
  */
 public final class PacketPlayOutCamera implements Packet<PacketPlayOutCamera> {
-	public PacketPlayOutCamera(EntityLiving entity) {
+	public PacketPlayOutCamera(Entity entity) {
 		
 	}
 

@@ -3,7 +3,7 @@ package net.minecraft.server.v1_16_R3;
  * Fake nms
  */
 public final class PlayerInteractManager {
-	public WorldSettings.EnumGamemode getGameMode() {
+	public EnumGamemode getGameMode() {
 		return null;
 	}
 }

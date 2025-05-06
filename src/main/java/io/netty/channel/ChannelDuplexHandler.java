@@ -1,6 +1,6 @@
 package io.netty.channel;
 
-public class ChannelDuplexHandler {
+public class ChannelDuplexHandler implements ChannelHandler {
 	public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
 		
 	}

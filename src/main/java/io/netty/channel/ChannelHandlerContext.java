@@ -1,5 +1,5 @@
 package io.netty.channel;
 
-public class ChannelHandlerContext {
+public interface ChannelHandlerContext {
 
 }

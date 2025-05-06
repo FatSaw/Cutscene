@@ -3,7 +3,7 @@ package net.minecraft.server.v1_13_R2;
  * Fake nms
  */
 public final class PacketPlayOutEntityHeadRotation implements Packet<PacketPlayOutEntityHeadRotation> {
-	public PacketPlayOutEntityHeadRotation(EntityLiving entity, byte y) {
+	public PacketPlayOutEntityHeadRotation(Entity entity, byte y) {
 	}
 
 	@Override
