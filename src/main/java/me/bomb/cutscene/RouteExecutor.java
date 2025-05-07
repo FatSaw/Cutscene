@@ -57,7 +57,7 @@ public class RouteExecutor extends Thread {
 					if(cameramanager.contains(player)) {
 						cameramanager.setLocationPoint(player, data.routeprovider.getNext());
 					} else if(!new SceneStartEvent(player, data.routeprovider, data.camera).isCanceled()) {
-						cameramanager.put(player, data.routeprovider.getNext(), data.camera, true, true);
+						cameramanager.put(player, data.routeprovider.getNext(), data.camera);
 					}
 				} else {
 					SceneEndEvent see = new SceneEndEvent(player, data.routeprovider, data.camera);
