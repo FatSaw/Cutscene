@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.entity.Player;
 
@@ -40,18 +42,24 @@ public abstract class CameraManager {
 		}
 	}
 	
+	protected ConcurrentHashMap<UUID, AtomicBoolean> filters = new ConcurrentHashMap<>();
 	protected Map<UUID, CameraData> cameradata = new HashMap<UUID, CameraData>();
 	
-	public final void put(Player player,LocationPoint currentlocation,CameraType cameratype,boolean hideinventory,boolean hideinterface) {
-		if(player==null||currentlocation==null||cameratype==null) return;
-		if(cameradata.containsKey(player.getUniqueId())) {
-			CameraData data = cameradata.get(player.getUniqueId());
+	public final void put(Player player,LocationPoint currentlocation,CameraType cameratype) {
+		final AtomicBoolean filter;
+		final UUID playeruuid;
+		if(player==null||currentlocation==null||cameratype==null||(filter=filters.get(playeruuid = player.getUniqueId()))==null) {
+			return;
+		}
+		CameraData data = cameradata.get(playeruuid);
+		if(data!=null) {
 			data.currentlocation = currentlocation;
 			data.cameratype = cameratype;
 			this.updateCameraType(player);
 			return;
 		}
-		cameradata.put(player.getUniqueId(),new CameraData(currentlocation,null,cameratype,hideinventory,hideinterface));
+		filter.set(true);
+		cameradata.put(playeruuid,new CameraData(currentlocation,null,cameratype));
 		this.spawnCamera(player);
 	}
 	
@@ -97,23 +105,31 @@ public abstract class CameraManager {
 	
 	public final void remove(Player player) {
 		if(player==null) return;
-		boolean online = player.isOnline();
-		if(online) this.despawnCamera(player);
+
+		AtomicBoolean filter = filters.get(player.getUniqueId());
+		final boolean online = filter != null;
+		if(online) {
+			this.despawnCamera(player);
+			filter.set(false);
+		}
 		cameradata.remove(player.getUniqueId());
 		if(online) this.restore(player);
 	}
 	
 	public void registerHandler(Player player) {
 		if(player==null) return;
-		this.register(player);
+		AtomicBoolean filter = new AtomicBoolean(false);
+		filters.put(player.getUniqueId(), filter);
+		this.register(player, filter);
 	}
 	
 	public final void unregisterHandler(Player player) {
 		if(player==null) return;
 		this.unregister(player);
+		filters.remove(player.getUniqueId());
 	}
 	
-	protected abstract void register(Player player);
+	protected abstract void register(Player player, AtomicBoolean filter);
 	protected abstract void unregister(Player player);
 	protected abstract void spawnCamera(Player player);
 	protected abstract void updateCameraType(Player player);
@@ -125,15 +141,12 @@ public abstract class CameraManager {
 		protected LocationPoint firstlocation, previouslocation, currentlocation;
 		protected Object cameraentity;
 		protected CameraType cameratype;
-		protected boolean hideinventory, hideinterface;
-		private CameraData(LocationPoint currentlocation,Object cameraentity,CameraType cameratype,boolean hideinventory,boolean hideinterface) {
+		private CameraData(LocationPoint currentlocation,Object cameraentity,CameraType cameratype) {
 			this.firstlocation = currentlocation;
 			this.previouslocation = currentlocation;
 			this.currentlocation = currentlocation;
 			this.cameraentity = cameraentity;
 			this.cameratype = cameratype;
-			this.hideinventory = hideinventory;
-			this.hideinterface = hideinterface;
 		}
 	}
 	

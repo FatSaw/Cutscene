@@ -2,6 +2,7 @@ package me.bomb.camerautil;
 
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.craftbukkit.v1_15_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
@@ -68,7 +69,7 @@ final class CameraManager_v1_15_R1 extends CameraManager {
 		packetemptywindowitems = new PacketPlayOutWindowItems(0, nnl);
 	}
 
-	protected void register(Player player) {
+	protected void register(Player player, AtomicBoolean filter) {
 		ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
             @Override
             public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
@@ -89,13 +90,13 @@ final class CameraManager_v1_15_R1 extends CameraManager {
             public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
             	if(contains(player)) {
 					CameraData data = cameradata.get(player.getUniqueId());
-					if (packet instanceof PacketPlayOutWindowItems&&data.hideinventory) {
+					if (packet instanceof PacketPlayOutWindowItems) {
             	        packet = packetemptywindowitems;
                     }
                     if(packet instanceof PacketPlayOutSetSlot) {
                     	return;
                     }
-                	if (packet instanceof PacketPlayOutPlayerInfo&&data.hideinterface) {
+                	if (packet instanceof PacketPlayOutPlayerInfo) {
                 		PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
                 		PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
             			info.b(packetdataserializer);
@@ -181,9 +182,9 @@ final class CameraManager_v1_15_R1 extends CameraManager {
 		data.cameraentity = cameraentity;
 		
 		PlayerConnection connection = entityplayer.playerConnection;
-		if(data.hideinterface) connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE, entityplayer));
-		if(data.hideinventory) connection.sendPacket(packetemptywindowitems);
-		if(data.hideinterface) connection.sendPacket(new PacketPlayOutGameStateChange(3, 3));
+		connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE, entityplayer));
+		connection.sendPacket(packetemptywindowitems);
+		connection.sendPacket(new PacketPlayOutGameStateChange(3, 3));
 		connection.sendPacket(new PacketPlayOutSpawnEntityLiving(cameraentity));
 		connection.sendPacket(new PacketPlayOutEntityMetadata(cameraentity.getId(), cameraentity.getDataWatcher(), false));
 		connection.sendPacket(new PacketPlayOutCamera(cameraentity));

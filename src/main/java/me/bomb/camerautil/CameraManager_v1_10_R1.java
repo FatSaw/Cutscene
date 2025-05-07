@@ -3,6 +3,8 @@ package me.bomb.camerautil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.craftbukkit.v1_10_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
@@ -65,70 +67,9 @@ final class CameraManager_v1_10_R1 extends CameraManager {
 		packetemptywindowitems = new PacketPlayOutWindowItems(0, nnl);
 	}
 
-	protected void register(Player player) {
-		ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
-			@Override
-			public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
-				if (contains(player)) {
-					if (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
-							|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
-							|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
-							|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
-							|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
-							|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
-							|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem) {
-						return;
-					}
-				}
-				super.channelRead(context, packet);
-			}
-
-			@Override
-			public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
-				if (contains(player)) {
-					CameraData data = cameradata.get(player.getUniqueId());
-					if (packet instanceof PacketPlayOutWindowItems&&data.hideinventory) {
-						packet = packetemptywindowitems;
-					}
-					if (packet instanceof PacketPlayOutSetSlot) {
-						return;
-					}
-					if (packet instanceof PacketPlayOutPlayerInfo&&data.hideinterface) {
-						PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
-						PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
-						info.b(packetdataserializer);
-						EnumPlayerInfoAction action = packetdataserializer.a(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.class);
-						switch (action) {
-						case UPDATE_GAME_MODE:
-							HashMap<UUID, Byte> gamemodes = new HashMap<UUID, Byte>();
-							int i = packetdataserializer.g();
-							for (int j = 0; j < i; ++j) {
-								UUID uuid = packetdataserializer.i();
-								if (player.getUniqueId().equals(uuid)) {
-									packetdataserializer.g();
-									gamemodes.put(uuid, (byte) 3);
-								} else {
-									gamemodes.put(uuid, (byte) packetdataserializer.g());
-								}
-							}
-							packetdataserializer.a(action);
-							packetdataserializer.d(gamemodes.size());
-							for (UUID uuid : gamemodes.keySet()) {
-								packetdataserializer.a(uuid);
-								packetdataserializer.d(gamemodes.get(uuid));
-							}
-							info.a(packetdataserializer);
-							packet = info;
-						default:
-							break;
-						}
-					}
-				}
-				super.write(context, packet, channelPromise);
-			}
-		};
+	protected void register(Player player, AtomicBoolean filter) {
 		ChannelPipeline pipeline = ((CraftPlayer) player).getHandle().playerConnection.networkManager.channel.pipeline();
-		pipeline.addBefore("packet_handler", "cutscene", channelDuplexHandler);
+		pipeline.addBefore("packet_handler", "cutscene", new PacketFilter(player.getUniqueId(), filter));
 	}
 
 	protected void unregister(Player player) {
@@ -178,9 +119,9 @@ final class CameraManager_v1_10_R1 extends CameraManager {
 		data.cameraentity = cameraentity;
 		
 		PlayerConnection connection = entityplayer.playerConnection;
-		if(data.hideinterface) connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE, entityplayer));
-		if(data.hideinventory) connection.sendPacket(packetemptywindowitems);
-		if(data.hideinterface) connection.sendPacket(new PacketPlayOutGameStateChange(3, -1));
+		connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE, entityplayer));
+		connection.sendPacket(packetemptywindowitems);
+		connection.sendPacket(new PacketPlayOutGameStateChange(3, -1));
 		connection.sendPacket(new PacketPlayOutSpawnEntityLiving(cameraentity));
 		connection.sendPacket(new PacketPlayOutCamera(cameraentity));
 	}
@@ -279,6 +220,76 @@ final class CameraManager_v1_10_R1 extends CameraManager {
 		connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_GAME_MODE,entityplayer));
 		connection.sendPacket(new PacketPlayOutAbilities(entityplayer.abilities));
 		entityplayer.updateInventory(entityplayer.defaultContainer);
+	}
+	
+public final static class PacketFilter extends ChannelDuplexHandler {
+		
+		private final UUID playeruuid;
+		private final AtomicBoolean filter;
+		
+		public PacketFilter(UUID playeruuid, AtomicBoolean filter) {
+			this.playeruuid = playeruuid;
+			this.filter = filter;
+		}
+		
+		@Override
+		public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
+			if (filter.get() && (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
+					|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
+					|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
+					|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
+					|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
+					|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
+					|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem)) {
+				return;
+			}
+			super.channelRead(context, packet);
+		}
+
+		@Override
+		public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
+			if(!filter.get()) {
+        		super.write(context, packet, channelPromise);
+        		return;
+        	}
+			if (packet instanceof PacketPlayOutWindowItems) {
+				packet = packetemptywindowitems;
+			}
+			if (packet instanceof PacketPlayOutSetSlot) {
+				return;
+			}
+			if (packet instanceof PacketPlayOutPlayerInfo) {
+				PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
+				PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
+				info.b(packetdataserializer);
+				EnumPlayerInfoAction action = packetdataserializer.a(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.class);
+				switch (action) {
+				case UPDATE_GAME_MODE:
+					HashMap<UUID, Byte> gamemodes = new HashMap<UUID, Byte>();
+					int i = packetdataserializer.g();
+					for (int j = 0; j < i; ++j) {
+						UUID uuid = packetdataserializer.i();
+						if (playeruuid.equals(uuid)) {
+							packetdataserializer.g();
+							gamemodes.put(uuid, (byte) 3);
+						} else {
+							gamemodes.put(uuid, (byte) packetdataserializer.g());
+						}
+					}
+					packetdataserializer.a(action);
+					packetdataserializer.d(gamemodes.size());
+					for (Entry<UUID, Byte> entry : gamemodes.entrySet()) {
+						packetdataserializer.a(entry.getKey());
+						packetdataserializer.d(entry.getValue());
+					}
+					info.a(packetdataserializer);
+					packet = info;
+				default:
+					break;
+				}
+			}
+			super.write(context, packet, channelPromise);
+		}
 	}
 	
 }
