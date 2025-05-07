@@ -20,16 +20,14 @@ public final class PacketDataSerializer {
 		return null;
 	}
 	
-	public PacketDataSerializer b(int b) {
-		return null;
+	public void b(int b) {
+		
 	}
 	
-	public PacketDataSerializer a(Enum<?> a) {
-		return null;
+	public void a(Enum<?> a) {
 	}
 	
-	public PacketDataSerializer a(UUID a) {
-		return null;
+	public void a(UUID a) {
 	}
 	
 	public <T extends Enum<T>> T a(Class<T> a) {

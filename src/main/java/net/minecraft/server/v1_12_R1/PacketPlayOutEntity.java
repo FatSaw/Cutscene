@@ -13,7 +13,7 @@ public final class PacketPlayOutEntity implements Packet<PacketPlayOutEntity> {
 	}
 	public final static class PacketPlayOutRelEntityMoveLook implements Packet<PacketPlayOutRelEntityMoveLook> {
 
-		public PacketPlayOutRelEntityMoveLook(int id, short vx, short vy, short vz, byte y, byte p , boolean f) {
+		public PacketPlayOutRelEntityMoveLook(int id, long vx, long vy, long vz, byte y, byte p , boolean f) {
 			
 		}
 		

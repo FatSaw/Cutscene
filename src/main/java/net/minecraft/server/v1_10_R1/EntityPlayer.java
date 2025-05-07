@@ -11,7 +11,7 @@ public final class EntityPlayer extends Entity {
 	public int dimension, expTotal, expLevel;
 	public double locX, locY, locZ;
 	public float yaw, pitch, exp;
-	public ContainerPlayer defaultContainer;
+	public Container defaultContainer;
 	public PlayerAbilities abilities;
 	public World world;
 	public PlayerInteractManager playerInteractManager;

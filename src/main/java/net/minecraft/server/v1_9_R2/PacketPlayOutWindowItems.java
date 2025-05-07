@@ -1,12 +1,12 @@
 package net.minecraft.server.v1_9_R2;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Fake nms
  */
 public final class PacketPlayOutWindowItems implements Packet<PacketPlayOutWindowItems> {
-	public PacketPlayOutWindowItems(int i,ArrayList<ItemStack> items) {
+	public PacketPlayOutWindowItems(int i,List<ItemStack> items) {
 		
 	}
 
