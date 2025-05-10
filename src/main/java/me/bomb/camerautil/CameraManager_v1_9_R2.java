@@ -74,10 +74,7 @@ final class CameraManager_v1_9_R2 extends CameraManager {
 
 	protected void unregister(Player player) {
 		Channel channel = ((CraftPlayer) player).getHandle().playerConnection.networkManager.channel;
-		channel.eventLoop().submit(() -> {
-			channel.pipeline().remove("cutscene");
-			return null;
-		});
+		channel.eventLoop().submit(new Unregister(channel.pipeline()));
 	}
 
 	protected void spawnCamera(Player player) {
