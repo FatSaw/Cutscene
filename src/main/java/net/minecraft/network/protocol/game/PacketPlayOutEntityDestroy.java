@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.Packet;
  * Fake nms
  */
 public final class PacketPlayOutEntityDestroy implements Packet<PacketPlayOutEntityDestroy> {
-	public PacketPlayOutEntityDestroy(int id) {
+	public PacketPlayOutEntityDestroy(int... id) {
 		
 	}
 

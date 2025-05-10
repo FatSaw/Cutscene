@@ -2,13 +2,13 @@ package net.minecraft.network.protocol.game;
 
 import net.minecraft.network.PacketDataSerializer;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.world.entity.EntityLiving;
+import net.minecraft.world.entity.Entity;
 
 /**
  * Fake nms
  */
 public final class PacketPlayOutCamera implements Packet<PacketPlayOutCamera> {
-	public PacketPlayOutCamera(EntityLiving entity) {
+	public PacketPlayOutCamera(Entity entity) {
 		
 	}
 

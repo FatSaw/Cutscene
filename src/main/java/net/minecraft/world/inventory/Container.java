@@ -1,6 +1,6 @@
 package net.minecraft.world.inventory;
 
-public abstract class AbstractContainerMenu {
+public abstract class Container {
 	
 	public void updateInventory() {
 	}

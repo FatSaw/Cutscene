@@ -4,9 +4,8 @@ import java.util.UUID;
 
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
 import net.minecraft.world.entity.player.PlayerAbilities;
-import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Container;
 import net.minecraft.world.level.World;
 
 /**
@@ -18,7 +17,7 @@ public final class EntityPlayer extends Entity {
 	public int dimension, expTotal, expLevel;
 	public double locX, locY, locZ;
 	public float yaw, pitch, exp;
-	public AbstractContainerMenu bV, bU;
+	public Container bV, bU;
 	public World t, s;
 	public PlayerInteractManager d;
 	public String locale;
@@ -42,11 +41,11 @@ public final class EntityPlayer extends Entity {
 		return null;
 	}
 	
-	public EntityLiving G() {
+	public Entity G() {
 		return null;
 	}
 	
-	public EntityLiving getSpecatorTarget() {
+	public Entity getSpecatorTarget() {
 		return null;
 	}
 	

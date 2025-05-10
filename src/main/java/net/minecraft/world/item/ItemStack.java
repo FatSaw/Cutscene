@@ -1,7 +1,9 @@
 package net.minecraft.world.item;
 
+import net.minecraft.world.level.IMaterial;
+
 public final class ItemStack {
-	public ItemStack(Item item) {
+	public ItemStack(IMaterial item) {
 		
 	}
 }

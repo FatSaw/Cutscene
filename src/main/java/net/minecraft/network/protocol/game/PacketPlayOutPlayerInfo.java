@@ -8,7 +8,7 @@ import net.minecraft.server.level.EntityPlayer;
  * Fake nms
  */
 public final class PacketPlayOutPlayerInfo implements Packet<PacketPlayOutPlayerInfo> {
-	public PacketPlayOutPlayerInfo(EnumPlayerInfoAction action, EntityPlayer player) {
+	public PacketPlayOutPlayerInfo(EnumPlayerInfoAction action, EntityPlayer... player) {
 		
 	}
 	
