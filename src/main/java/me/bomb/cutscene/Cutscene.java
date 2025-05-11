@@ -17,119 +17,122 @@ public final class Cutscene extends JavaPlugin {
 	
 	protected static FileConfiguration routedata;
 	protected static YamlConfiguration lang;
-	private boolean supported = false;
+	private volatile boolean supported = false;
 	private static File routefile;
 	
 	private final CameraManager cameramanager;
-	private final RouteExecutor routeexecutor;
+	private RouteExecutor routeexecutor;
+	private final int version;
 	
 	public Cutscene() {
-		CameraManager cameramanager = null;
+		int version = 0;
 		try {
 			final String nmsversion = this.getServer().getClass().getPackage().getName().substring(23);
 			switch(nmsversion) {
-			case "v1_19_R1":
-				cameramanager = CameraManager.initialize(19);
+			case "v1_19_R3":
+				version = 19;
 			break;
 			case "v1_18_R2":
-				cameramanager = CameraManager.initialize(18);
+				version = 18;
 			break;
 			case "v1_17_R1":
-				cameramanager = CameraManager.initialize(17);
+				version = 17;
 			break;
 			case "v1_16_R3":
-				cameramanager = CameraManager.initialize(16);
+				version = 16;
 			break;
 			case "v1_15_R1":
-				cameramanager = CameraManager.initialize(15);
+				version = 15;
 			break;
 			case "v1_14_R1":
-				cameramanager = CameraManager.initialize(14);
+				version = 14;
 			break;
 			case "v1_13_R2":
-				cameramanager = CameraManager.initialize(13);
+				version = 13;
 			break;
 			case "v1_12_R1":
-				cameramanager = CameraManager.initialize(12);
+				version = 12;
 			break;
 			case "v1_11_R1":
-				cameramanager = CameraManager.initialize(11);
+				version = 11;
 			break;
 			case "v1_10_R1":
-				cameramanager = CameraManager.initialize(10);
+				version = 10;
 			break;
 			case "v1_9_R2":
-				cameramanager = CameraManager.initialize(9);
+				version = 9;
 			break;
 			case "v1_8_R3":
-				cameramanager = CameraManager.initialize(8);
+				version = 8;
 			break;
+			default:
+				version = 0;
 			}
 		} catch (Exception e) {
 		}
-		this.cameramanager = cameramanager;
-		this.routeexecutor = new RouteExecutor(cameramanager);
+		this.version = version;
+		this.cameramanager = this.version == 0 ? null : CameraManager.initialize(this.version);
 	}
 	
 	@Override
 	public void onEnable() {
-		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
-		case "v1_19_R1":case "v1_18_R2":case "v1_17_R1":case "v1_16_R3":case "v1_15_R1":case "v1_14_R1":case "v1_13_R2":case "v1_12_R1":case "v1_11_R1":case "v1_10_R1":case "v1_9_R2":case "v1_8_R3":
-			try {
-				routefile = new File(getDataFolder() + File.separator + "route.yml");
-				if (!routefile.exists()) {
-					saveResource("route.yml", true);
-				}
-				routedata = YamlConfiguration.loadConfiguration(routefile);
-			} catch (Exception e) {
-				getLogger().log(Level.WARNING, "Error on loading route file!");
-				getServer().getPluginManager().disablePlugin(this);
-				return;
-			}
-			try {
-				if (!new File(getDataFolder() + File.separator + "lang.yml").exists()) {
-					saveResource("lang.yml", true);
-				}
-				lang = YamlConfiguration.loadConfiguration(new File(getDataFolder() + File.separator + "lang.yml"));
-			} catch (Exception e) {
-				getLogger().log(Level.WARNING, "Error on loading language file!");
-				getServer().getPluginManager().disablePlugin(this);
-				return;
-			}
-			try {
-				Bukkit.getPluginManager().registerEvents(new JoinQuitListener(this.cameramanager), this);
-			} catch (Exception e) {
-				getLogger().log(Level.WARNING, "Error on register events!");
-				getServer().getPluginManager().disablePlugin(this);
-				return;
-			}
-			try {
-				PluginCommand playscenecommand = getCommand("playscene");
-				playscenecommand.setExecutor(new PlaysceneCommand(this.cameramanager, this.routeexecutor));
-				playscenecommand.setTabCompleter(new PlaysceneTabCompleter());
-			} catch (Exception e) {
-				getLogger().log(Level.WARNING, "Error on register playscene command!");
-				getServer().getPluginManager().disablePlugin(this);
-				return;
-			}
-			Bukkit.getOnlinePlayers().forEach(player -> {
-				cameramanager.registerHandler(player);
-			});
-			routeexecutor.start();
-			getLogger().log(Level.INFO, "Plugin enabeled!");
-			supported = true;
-			break;
-		default:
+		if(this.cameramanager == null) {
 			getLogger().log(Level.WARNING, "Unsupported server version!");
 			getServer().getPluginManager().disablePlugin(this);
+			return;
 		}
+		try {
+			routefile = new File(getDataFolder(), "route.yml");
+			if (!routefile.exists()) {
+				saveResource("route.yml", true);
+			}
+			routedata = YamlConfiguration.loadConfiguration(routefile);
+		} catch (Exception e) {
+			getLogger().log(Level.WARNING, "Error on loading route file!");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		try {
+			if (!new File(getDataFolder(), "lang.yml").exists()) {
+				saveResource("lang.yml", true);
+			}
+			lang = YamlConfiguration.loadConfiguration(new File(getDataFolder() + File.separator + "lang.yml"));
+		} catch (Exception e) {
+			getLogger().log(Level.WARNING, "Error on loading language file!");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		try {
+			Bukkit.getPluginManager().registerEvents(new JoinQuitListener(this.cameramanager), this);
+		} catch (Exception e) {
+			getLogger().log(Level.WARNING, "Error on register events!");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		this.routeexecutor = new RouteExecutor(cameramanager);
+		try {
+			PluginCommand playscenecommand = getCommand("playscene");
+			playscenecommand.setExecutor(new PlaysceneCommand(this.cameramanager, this.routeexecutor, this.version));
+			playscenecommand.setTabCompleter(new PlaysceneTabCompleter());
+		} catch (Exception e) {
+			getLogger().log(Level.WARNING, "Error on register playscene command!");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		getServer().getOnlinePlayers().forEach(player -> {
+			cameramanager.registerHandler(player);
+		});
+		routeexecutor.start();
+		getLogger().log(Level.INFO, "Plugin enabeled!");
+		supported = true;
 	}
 	
 	public void onDisable() {
 		if (supported) {
 			routeexecutor.end();
-			Bukkit.getOnlinePlayers().forEach(player -> {
+			getServer().getOnlinePlayers().forEach(player -> {
 				cameramanager.unregisterHandler(player);
+				cameramanager.remove(player);
 			});
 		}
 	}
