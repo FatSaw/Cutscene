@@ -1,10 +1,14 @@
 package me.bomb.camerautil;
 
+import java.lang.reflect.Field;
+import java.util.BitSet;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import io.netty.buffer.Unpooled;
@@ -25,7 +29,7 @@ import net.minecraft.world.entity.monster.EntitySpider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.NonNullList;
-
+import net.minecraft.network.NetworkManager;
 import net.minecraft.network.PacketDataSerializer;
 import net.minecraft.network.protocol.game.PacketPlayInArmAnimation;
 import net.minecraft.network.protocol.game.PacketPlayInBlockDig;
@@ -49,13 +53,13 @@ import net.minecraft.network.protocol.game.PacketPlayOutEntityHeadRotation;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityTeleport;
 import net.minecraft.network.protocol.game.PacketPlayOutGameStateChange;
-import net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo;
-import net.minecraft.network.protocol.game.PacketPlayOutPlayerInfo.EnumPlayerInfoAction;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.a;
 import net.minecraft.network.protocol.game.PacketPlayOutSetSlot;
 import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
 import net.minecraft.network.protocol.game.PacketPlayOutWindowItems;
 
-final class CameraManager_v1_19_R1 extends CameraManager {
+final class CameraManager_v1_19_R3 extends CameraManager {
 	
 	private static final PacketPlayOutWindowItems packetemptywindowitems;
 	
@@ -70,101 +74,59 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 	}
 
 	protected void register(Player player, AtomicBoolean filter) {
-		ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
-            @Override
-            public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
-            	if(contains(player)) {
-            		if (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
-							|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
-							|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
-							|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
-							|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
-							|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
-							|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem) {
-						return;
-					}
-            	}
-            	super.channelRead(context, packet);
-            }
-            @Override
-            public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
-            	if(contains(player)) {
-					CameraData data = cameradata.get(player.getUniqueId());
-            		if(packet instanceof PacketPlayOutWindowItems) {
-            	        packet = packetemptywindowitems;
-                    }
-                    if(packet instanceof PacketPlayOutSetSlot) {
-                    	return;
-                    }
-                	if (packet instanceof PacketPlayOutPlayerInfo) {
-                		PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
-                		PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
-            			info.a(packetdataserializer);
-            			EnumPlayerInfoAction action = packetdataserializer.a(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.class);
-                		switch (action) {
-                		case b :
-                			HashMap<UUID,Byte> gamemodes = new HashMap<UUID,Byte>();
-                			int i = packetdataserializer.k();
-                			for (int j = 0; j < i; ++j) {
-                				UUID uuid = packetdataserializer.m();
-                				if(player.getUniqueId().equals(uuid)) {
-                					packetdataserializer.k();
-                					gamemodes.put(uuid, (byte) -1);
-                				} else {
-                					gamemodes.put(uuid, (byte) packetdataserializer.k());
-                				}
-                			}
-                			packetdataserializer.a(action);
-                			packetdataserializer.d(gamemodes.size());
-    						for(UUID uuid : gamemodes.keySet()) {
-    							packetdataserializer.a(uuid);
-    							packetdataserializer.d(gamemodes.get(uuid));
-    						}
-                			info.a(packetdataserializer);
-                			packet = info;
-    					default:
-    					break;
-                		}
-                	}
-            	}
-            	super.write(context, packet, channelPromise);
-            }
-        };
-        ChannelPipeline pipeline = ((CraftPlayer) player).getHandle().b.b.m.pipeline();
-        pipeline.addBefore("packet_handler", "cutscene", channelDuplexHandler);
+        PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
+        NetworkManager networkmanager;
+		try {
+			Field h = connection.getClass().getDeclaredField("h");
+	        h.setAccessible(true);
+	        networkmanager = (NetworkManager) h.get(connection);
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			return;
+		}
+		ChannelPipeline pipeline = networkmanager.m.pipeline();
+        pipeline.addBefore("packet_handler", "cutscene", new PacketFilter(player.getUniqueId(), filter));
 	}
 
 	protected void unregister(Player player) {
-		Channel channel = ((CraftPlayer) player).getHandle().b.b.m;
+		PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
+        NetworkManager networkmanager;
+		try {
+			Field h = connection.getClass().getDeclaredField("h");
+	        h.setAccessible(true);
+	        networkmanager = (NetworkManager) h.get(connection);
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			return;
+		}
+		Channel channel = networkmanager.m;
 		channel.eventLoop().submit(new Unregister(channel.pipeline()));
 	}
 
 	protected void spawnCamera(Player player) {
 		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
-		if(!cameradata.containsKey(entityplayer.co())) return;
-		CameraData data = cameradata.get(entityplayer.co());
+		if(!cameradata.containsKey(entityplayer.cs())) return;
+		CameraData data = cameradata.get(entityplayer.cs());
 		EntityLiving cameraentity = null;
 		CameraType type = data.cameratype;
 		LocationPoint location = data.currentlocation;
 		switch (type) {
 		case NORMAL:
-			EntityArmorStand stand = new EntityArmorStand(entityplayer.s, location.getX(), location.getY() - type.eyeheight, location.getZ());
-			stand.o(location.getYaw());
-			stand.p(location.getPitch());
+			EntityArmorStand stand = new EntityArmorStand(entityplayer.H, location.getX(), location.getY() - type.eyeheight, location.getZ());
+			stand.f(location.getYaw());
+			stand.e(location.getPitch());
 			cameraentity = stand;
 			break;
 		case GREEN:
-			EntityCreeper creeper = new EntityCreeper(EntityTypes.q, entityplayer.s);
+			EntityCreeper creeper = new EntityCreeper(EntityTypes.u, entityplayer.H);
 			creeper.a(location.getX(), location.getY() - type.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			cameraentity = creeper;
 			break;
 		case NEGATIVE:
-			EntityEnderman enderman = new EntityEnderman(EntityTypes.y, entityplayer.s);
+			EntityEnderman enderman = new EntityEnderman(EntityTypes.E, entityplayer.H);
 			enderman.a(location.getX(), location.getY() - type.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			cameraentity = enderman;
 			break;
 		case SPLIT:
-			EntitySpider spider = new EntitySpider(EntityTypes.aL, entityplayer.s);
+			EntitySpider spider = new EntitySpider(EntityTypes.aS, entityplayer.H);
 			spider.a(location.getX(), location.getY() - type.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			cameraentity = spider;
 			break;
@@ -179,18 +141,18 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 		data.cameraentity = cameraentity;
 		
 		PlayerConnection connection = entityplayer.b;
-		connection.a(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.b, entityplayer));
+		connection.a(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.a.c, entityplayer));
 		connection.a(packetemptywindowitems);
 		connection.a(new PacketPlayOutGameStateChange(new PacketPlayOutGameStateChange.a(3), 3));
-		connection.a(new PacketPlayOutSpawnEntity(cameraentity));
-		connection.a(new PacketPlayOutEntityMetadata(cameraentity.ae(), cameraentity.ai(), false));
+		connection.a(new PacketPlayOutSpawnEntity(cameraentity, cameraentity.af()));
+		connection.a(new PacketPlayOutEntityMetadata(cameraentity.af(), cameraentity.aj().c()));
 		connection.a(new PacketPlayOutCamera(cameraentity));
 	}
 	
 	protected void updateCameraType(Player player) {
 		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
-		if(!cameradata.containsKey(entityplayer.co())) return;
-		CameraData data = cameradata.get(entityplayer.co());
+		if(!cameradata.containsKey(entityplayer.cs())) return;
+		CameraData data = cameradata.get(entityplayer.cs());
 		if(data.cameraentity==null || data.cameratype==null) return;
 		EntityLiving oldcameraentity = (EntityLiving) data.cameraentity;
 		CameraType newtype = data.cameratype;
@@ -210,23 +172,23 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 		LocationPoint location = data.currentlocation;
 		switch (newtype) {
 		case NORMAL:
-			EntityArmorStand stand = new EntityArmorStand(entityplayer.s, location.getX(), location.getY() - newtype.eyeheight, location.getZ());
-			stand.o(location.getYaw());
-			stand.p(location.getPitch());
+			EntityArmorStand stand = new EntityArmorStand(entityplayer.H, location.getX(), location.getY() - newtype.eyeheight, location.getZ());
+			stand.f(location.getYaw());
+			stand.e(location.getPitch());
 			newcameraentity = stand;
 			break;
 		case GREEN:
-			EntityCreeper creeper = new EntityCreeper(EntityTypes.q, entityplayer.s);
+			EntityCreeper creeper = new EntityCreeper(EntityTypes.u, entityplayer.H);
 			creeper.a(location.getX(), location.getY() - newtype.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			newcameraentity = creeper;
 			break;
 		case NEGATIVE:
-			EntityEnderman enderman = new EntityEnderman(EntityTypes.y, entityplayer.s);
+			EntityEnderman enderman = new EntityEnderman(EntityTypes.E, entityplayer.H);
 			enderman.a(location.getX(), location.getY() - newtype.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			newcameraentity = enderman;
 			break;
 		case SPLIT:
-			EntitySpider spider = new EntitySpider(EntityTypes.aL, entityplayer.s);
+			EntitySpider spider = new EntitySpider(EntityTypes.aS, entityplayer.H);
 			spider.a(location.getX(), location.getY() - newtype.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			newcameraentity = spider;
 			break;
@@ -241,16 +203,16 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 		data.cameraentity = newcameraentity;
 		
 		PlayerConnection connection = entityplayer.b;
-		connection.a(new PacketPlayOutSpawnEntity(newcameraentity));
-		connection.a(new PacketPlayOutEntityMetadata(newcameraentity.ae(), newcameraentity.ai(), false));
+		connection.a(new PacketPlayOutSpawnEntity(newcameraentity, newcameraentity.af()));
+		connection.a(new PacketPlayOutEntityMetadata(newcameraentity.af(), newcameraentity.aj().c()));
 		connection.a(new PacketPlayOutCamera(newcameraentity));
-		connection.a(new PacketPlayOutEntityDestroy(oldcameraentity.ae()));
+		connection.a(new PacketPlayOutEntityDestroy(oldcameraentity.af()));
 	}
 	
 	protected void updateCameraLocation(Player player) {
 		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
-		if(!cameradata.containsKey(entityplayer.co())) return;
-		CameraData data = cameradata.get(entityplayer.co());
+		if(!cameradata.containsKey(entityplayer.cs())) return;
+		CameraData data = cameradata.get(entityplayer.cs());
 		if(data.cameraentity == null || data.cameratype == null) return;
 		EntityLiving cameraentity = (EntityLiving) data.cameraentity;
 		LocationPoint location = data.currentlocation;
@@ -260,18 +222,18 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 			cameraentity.a(location.getX(), location.getY() - data.cameratype.eyeheight, location.getZ(), location.getYaw(), location.getPitch());
 			connection.a(new PacketPlayOutEntityTeleport(cameraentity));
 		}
-		connection.a(new PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook(cameraentity.ae(), (short) 0, (short) 0, (short) 0, (byte) MathHelper.d(location.getYaw() * 256.0F / 360.0F), (byte) MathHelper.d(location.getPitch() * 256.0F / 360.0F), false));
+		connection.a(new PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook(cameraentity.af(), (short) 0, (short) 0, (short) 0, (byte) MathHelper.d(location.getYaw() * 256.0F / 360.0F), (byte) MathHelper.d(location.getPitch() * 256.0F / 360.0F), false));
 		connection.a(new PacketPlayOutEntityHeadRotation(cameraentity,(byte) MathHelper.d(location.getYaw() * 256.0F / 360.0F)));
 	}
 	
 	protected void despawnCamera(Player player) {
 		EntityPlayer entityplayer = ((CraftPlayer)player).getHandle();
-		if(!cameradata.containsKey(entityplayer.co())) return;
-		CameraData data = cameradata.get(entityplayer.co());
+		if(!cameradata.containsKey(entityplayer.cs())) return;
+		CameraData data = cameradata.get(entityplayer.cs());
 		EntityLiving cameraentity = (EntityLiving) data.cameraentity;
 		
 		PlayerConnection connection = entityplayer.b;
-		connection.a(new PacketPlayOutEntityDestroy(cameraentity.ae()));
+		connection.a(new PacketPlayOutEntityDestroy(cameraentity.af()));
 	}
 	
 	@Override
@@ -281,9 +243,104 @@ final class CameraManager_v1_19_R1 extends CameraManager {
 		PlayerConnection connection = entityplayer.b;
 		connection.a(new PacketPlayOutCamera(entityplayer.G()));
 		connection.a(new PacketPlayOutGameStateChange(new PacketPlayOutGameStateChange.a(3), entityplayer.d.b().a()));
-		connection.a(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.b, entityplayer));
-		connection.a(new PacketPlayOutAbilities(entityplayer.fB()));
-		entityplayer.bU.b();
+		connection.a(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.a.c, entityplayer));
+		connection.a(new PacketPlayOutAbilities(entityplayer.fK()));
+		entityplayer.bP.b();
+	}
+	
+public final static class PacketFilter extends ChannelDuplexHandler {
+		
+		private final UUID playeruuid;
+		private final AtomicBoolean filter;
+		
+		public PacketFilter(UUID playeruuid, AtomicBoolean filter) {
+			this.playeruuid = playeruuid;
+			this.filter = filter;
+		}
+		
+		@Override
+        public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
+			if (filter.get() && (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
+					|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
+					|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
+					|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
+					|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
+					|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
+					|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem)) {
+				return;
+			}
+        	super.channelRead(context, packet);
+        }
+        @Override
+        public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
+        	if(!filter.get()) {
+        		super.write(context, packet, channelPromise);
+        		return;
+        	}
+    		if(packet instanceof PacketPlayOutWindowItems) {
+    	        packet = packetemptywindowitems;
+            }
+            if(packet instanceof PacketPlayOutSetSlot) {
+            	return;
+            }
+        	if (packet instanceof ClientboundPlayerInfoUpdatePacket) {
+        		ClientboundPlayerInfoUpdatePacket info = (ClientboundPlayerInfoUpdatePacket) packet;
+        		PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
+    			
+        		info.a(packetdataserializer);
+    			BitSet bitset = packetdataserializer.f(6);
+    			EnumSet<a> enumset = EnumSet.noneOf(ClientboundPlayerInfoUpdatePacket.a.class);
+    			a[] ae = ClientboundPlayerInfoUpdatePacket.a.values();
+    	        for (int i = 0; i < 6; ++i) {
+    	            if (bitset.get(i)) {
+    	                enumset.add(ae[i]);
+    	            }
+    	        }
+    	        for (a action : enumset) {
+    	        	if(action != a.c) {
+    	        		continue;
+    	        	}
+    	        	HashMap<UUID,Byte> gamemodes = new HashMap<UUID,Byte>();
+        			int i = readVarInt(packetdataserializer); 
+        			for (int j = 0; j < i; ++j) {
+        				UUID uuid = packetdataserializer.o();
+        				if(playeruuid.equals(uuid)) {
+        					readVarInt(packetdataserializer);
+        					gamemodes.put(uuid, (byte) -1);
+        				} else {
+        					gamemodes.put(uuid, (byte) readVarInt(packetdataserializer));
+        				}
+        			}
+        			packetdataserializer.a(a.c);
+        			packetdataserializer.d(gamemodes.size());
+					for(Entry<UUID,Byte> entry : gamemodes.entrySet()) {
+						packetdataserializer.a(entry.getKey());
+						packetdataserializer.d(entry.getValue());
+					}
+        			info.a(packetdataserializer);
+        			packet = info;
+    	        }
+        	}
+        	super.write(context, packet, channelPromise);
+        }
+        
+        private int readVarInt(PacketDataSerializer packetdataserializer) {
+        	int i = 0;
+            int j = 0;
+
+            byte b0;
+
+            do {
+                b0 = packetdataserializer.readByte();
+                i |= (b0 & 127) << j++ * 7;
+                if (j > 5) {
+                    throw new RuntimeException("VarInt too big");
+                }
+            } while ((b0 & 128) == 128);
+
+            return i;
+        }
+		
 	}
 	
 }

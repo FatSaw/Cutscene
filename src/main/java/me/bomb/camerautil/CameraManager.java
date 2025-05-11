@@ -14,7 +14,7 @@ public abstract class CameraManager {
 	public static final CameraManager initialize(final int mcversion) {
 		switch(mcversion) {
 		case 19:
-			return new CameraManager_v1_19_R1();
+			return new CameraManager_v1_19_R3();
 		case 18:
 			return new CameraManager_v1_18_R2();
 		case 17:

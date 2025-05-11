@@ -2,6 +2,7 @@ package me.bomb.camerautil;
 
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer;
@@ -70,68 +71,8 @@ final class CameraManager_v1_18_R2 extends CameraManager {
 	}
 
 	protected void register(Player player, AtomicBoolean filter) {
-		ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
-            @Override
-            public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
-            	if(contains(player)) {
-            		if (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
-							|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
-							|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
-							|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
-							|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
-							|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
-							|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem) {
-						return;
-					}
-            	}
-            	super.channelRead(context, packet);
-            }
-            @Override
-            public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
-            	if(contains(player)) {
-					CameraData data = cameradata.get(player.getUniqueId());
-            		if(packet instanceof PacketPlayOutWindowItems) {
-            	        packet = packetemptywindowitems;
-                    }
-                    if(packet instanceof PacketPlayOutSetSlot) {
-                    	return;
-                    }
-                	if (packet instanceof PacketPlayOutPlayerInfo) {
-                		PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
-                		PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
-            			info.a(packetdataserializer);
-            			EnumPlayerInfoAction action = packetdataserializer.a(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.class);
-                		switch (action) {
-                		case b :
-                			HashMap<UUID,Byte> gamemodes = new HashMap<UUID,Byte>();
-                			int i = packetdataserializer.j();
-                			for (int j = 0; j < i; ++j) {
-                				UUID uuid = packetdataserializer.l();
-                				if(player.getUniqueId().equals(uuid)) {
-                					packetdataserializer.j();
-                					gamemodes.put(uuid, (byte) -1);
-                				} else {
-                					gamemodes.put(uuid, (byte) packetdataserializer.j());
-                				}
-                			}
-                			packetdataserializer.a(action);
-    						packetdataserializer.d(gamemodes.size());
-    						for(UUID uuid : gamemodes.keySet()) {
-    							packetdataserializer.a(uuid);
-    							packetdataserializer.d(gamemodes.get(uuid));
-    						}
-                			info.a(packetdataserializer);
-                			packet = info;
-    					default:
-    					break;
-                		}
-                	}
-            	}
-            	super.write(context, packet, channelPromise);
-            }
-        };
         ChannelPipeline pipeline = ((CraftPlayer) player).getHandle().b.a.m.pipeline();
-        pipeline.addBefore("packet_handler", "cutscene", channelDuplexHandler);
+        pipeline.addBefore("packet_handler", "cutscene", new PacketFilter(player.getUniqueId(), filter));
 	}
 
 	protected void unregister(Player player) {
@@ -284,6 +225,76 @@ final class CameraManager_v1_18_R2 extends CameraManager {
 		connection.a(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.b, entityplayer));
 		connection.a(new PacketPlayOutAbilities(entityplayer.fs()));
 		entityplayer.bV.b();
+	}
+	
+public final static class PacketFilter extends ChannelDuplexHandler {
+		
+		private final UUID playeruuid;
+		private final AtomicBoolean filter;
+		
+		public PacketFilter(UUID playeruuid, AtomicBoolean filter) {
+			this.playeruuid = playeruuid;
+			this.filter = filter;
+		}
+		
+		@Override
+        public void channelRead(ChannelHandlerContext context, Object packet) throws Exception {
+			if (filter.get() && (packet instanceof PacketPlayInSteerVehicle || packet instanceof PacketPlayInVehicleMove
+					|| packet instanceof PacketPlayInFlying || packet instanceof PacketPlayInPosition
+					|| packet instanceof PacketPlayInPositionLook || packet instanceof PacketPlayInLook
+					|| packet instanceof PacketPlayInBlockDig || packet instanceof PacketPlayInBlockPlace
+					|| packet instanceof PacketPlayInArmAnimation || packet instanceof PacketPlayInWindowClick
+					|| packet instanceof PacketPlayInBoatMove || packet instanceof PacketPlayInEntityAction
+					|| packet instanceof PacketPlayInUseEntity || packet instanceof PacketPlayInUseItem)) {
+				return;
+			}
+        	super.channelRead(context, packet);
+        }
+        @Override
+        public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
+        	if(!filter.get()) {
+        		super.write(context, packet, channelPromise);
+        		return;
+        	}
+    		if(packet instanceof PacketPlayOutWindowItems) {
+    	        packet = packetemptywindowitems;
+            }
+            if(packet instanceof PacketPlayOutSetSlot) {
+            	return;
+            }
+        	if (packet instanceof PacketPlayOutPlayerInfo) {
+        		PacketPlayOutPlayerInfo info = (PacketPlayOutPlayerInfo) packet;
+        		PacketDataSerializer packetdataserializer = new PacketDataSerializer(Unpooled.buffer(0));
+    			info.a(packetdataserializer);
+    			EnumPlayerInfoAction action = packetdataserializer.a(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.class);
+        		switch (action) {
+        		case b :
+        			HashMap<UUID,Byte> gamemodes = new HashMap<UUID,Byte>();
+        			int i = packetdataserializer.j();
+        			for (int j = 0; j < i; ++j) {
+        				UUID uuid = packetdataserializer.l();
+        				if(playeruuid.equals(uuid)) {
+        					packetdataserializer.j();
+        					gamemodes.put(uuid, (byte) -1);
+        				} else {
+        					gamemodes.put(uuid, (byte) packetdataserializer.j());
+        				}
+        			}
+        			packetdataserializer.a(action);
+					packetdataserializer.d(gamemodes.size());
+					for(Entry<UUID,Byte> entry : gamemodes.entrySet()) {
+						packetdataserializer.a(entry.getKey());
+						packetdataserializer.d(entry.getValue());
+					}
+        			info.a(packetdataserializer);
+        			packet = info;
+				default:
+				break;
+        		}
+        	}
+        	super.write(context, packet, channelPromise);
+        }
+		
 	}
 	
 }
