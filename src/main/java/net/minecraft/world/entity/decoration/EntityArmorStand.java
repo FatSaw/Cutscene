@@ -23,5 +23,13 @@ public final class EntityArmorStand extends EntityLiving {
 	public void p(float v) {
 		
 	}
+	
+	public void f(float v) {
+		
+	}
+	
+	public void e(float v) {
+		
+	}
 
 }

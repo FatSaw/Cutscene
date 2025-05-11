@@ -17,11 +17,14 @@ public final class EntityPlayer extends Entity {
 	public int dimension, expTotal, expLevel;
 	public double locX, locY, locZ;
 	public float yaw, pitch, exp;
-	public Container bV, bU;
-	public World t, s;
+	public Container bV, bP;
+	public World t, s, H;
 	public PlayerInteractManager d;
 	public String locale;
 
+	public int af() {
+		return 0;
+	}
 	public int ae() {
 		return 0;
 	}
@@ -29,7 +32,7 @@ public final class EntityPlayer extends Entity {
 		return 0;
 	}
 	
-	public UUID co() {
+	public UUID cs() {
 		return null;
 	}
 	
@@ -46,6 +49,10 @@ public final class EntityPlayer extends Entity {
 	}
 	
 	public Entity getSpecatorTarget() {
+		return null;
+	}
+	
+	public PlayerAbilities fK() {
 		return null;
 	}
 	

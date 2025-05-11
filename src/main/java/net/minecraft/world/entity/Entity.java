@@ -10,11 +10,17 @@ public class Entity {
 	}
 	public void a(double x, double y, double z, float yaw, float pitch) {
 	}
+	public int af() {
+		return 0;
+	}
 	public int ae() {
 		return 0;
 	}
 	public int getId() {
 		return 0;
+	}
+	public DataWatcher aj() {
+		return null;
 	}
 	public DataWatcher ai() {
 		return null;
