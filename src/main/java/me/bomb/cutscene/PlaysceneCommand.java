@@ -15,10 +15,12 @@ public class PlaysceneCommand implements CommandExecutor {
 	
 	private final CameraManager cameramanager;
 	private final RouteExecutor routeexecutor;
+	private final int version;
 	
-	public PlaysceneCommand(CameraManager cameramanager, RouteExecutor routeexecutor) {
+	public PlaysceneCommand(CameraManager cameramanager, RouteExecutor routeexecutor, int version) {
 		this.cameramanager = cameramanager;
 		this.routeexecutor = routeexecutor;
+		this.version = version;
 	}
 
 	@Override
@@ -164,31 +166,31 @@ public class PlaysceneCommand implements CommandExecutor {
 		return true;
 	};
 	
-	private static String getLocale(Player player) {
-		switch (Bukkit.getServer().getClass().getPackage().getName().substring(23)) {
-		case "v1_19_R1":
-			return ((org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_18_R2":
+	private String getLocale(Player player) {
+		switch (this.version) {
+		case 19:
+			return ((org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
+		case 18:
 			return ((org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_17_R1":
+		case 17:
 			return ((org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_16_R3":
+		case 16:
 			return ((org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_15_R1":
+		case 15:
 			return ((org.bukkit.craftbukkit.v1_15_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_14_R1":
+		case 14:
 			return ((org.bukkit.craftbukkit.v1_14_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_13_R2":
+		case 13:
 			return ((org.bukkit.craftbukkit.v1_13_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_12_R1":
+		case 12:
 			return ((org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_11_R1":
+		case 11:
 			return ((org.bukkit.craftbukkit.v1_11_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_10_R1":
+		case 10:
 			return ((org.bukkit.craftbukkit.v1_10_R1.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_9_R2":
+		case 9:
 			return ((org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
-		case "v1_8_R3":
+		case 8:
 			return ((org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer) player).getHandle().locale.toLowerCase();
 		default:
 			return "";
