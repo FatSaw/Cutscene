@@ -1,22 +1,18 @@
 package me.bomb.cutscene;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.bomb.camerautil.CameraManager;
-import me.bomb.cutscene.Route.RouteLocationPoint;
+import me.bomb.cutscene.command.PlaysceneCommand;
+import me.bomb.cutscene.command.PlaysceneTabCompleter;
 
 public final class Cutscene extends JavaPlugin {
 	
-	protected static FileConfiguration routedata;
-	protected static YamlConfiguration lang;
 	private volatile boolean supported = false;
 	private static File routefile;
 	
@@ -81,6 +77,7 @@ public final class Cutscene extends JavaPlugin {
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
+		final YamlConfiguration routedata, lang;
 		try {
 			routefile = new File(getDataFolder(), "route.yml");
 			if (!routefile.exists()) {
@@ -103,7 +100,7 @@ public final class Cutscene extends JavaPlugin {
 			return;
 		}
 		try {
-			Bukkit.getPluginManager().registerEvents(new JoinQuitListener(this.cameramanager), this);
+			getServer().getPluginManager().registerEvents(new JoinQuitListener(this.cameramanager), this);
 		} catch (Exception e) {
 			getLogger().log(Level.WARNING, "Error on register events!");
 			getServer().getPluginManager().disablePlugin(this);
@@ -112,8 +109,8 @@ public final class Cutscene extends JavaPlugin {
 		this.routeexecutor = new RouteExecutor(cameramanager);
 		try {
 			PluginCommand playscenecommand = getCommand("playscene");
-			playscenecommand.setExecutor(new PlaysceneCommand(this.cameramanager, this.routeexecutor, this.version));
-			playscenecommand.setTabCompleter(new PlaysceneTabCompleter());
+			playscenecommand.setExecutor(new PlaysceneCommand(this.cameramanager, this.routeexecutor, this.version, lang, routedata));
+			playscenecommand.setTabCompleter(new PlaysceneTabCompleter(routedata));
 		} catch (Exception e) {
 			getLogger().log(Level.WARNING, "Error on register playscene command!");
 			getServer().getPluginManager().disablePlugin(this);
@@ -125,6 +122,17 @@ public final class Cutscene extends JavaPlugin {
 		routeexecutor.start();
 		getLogger().log(Level.INFO, "Plugin enabeled!");
 		supported = true;
+		
+		//TEST
+		/*getServer().getPluginManager().registerEvents(new Listener() {
+			@EventHandler
+			public void onJoin(PlayerJoinEvent e) {
+				Player player = e.getPlayer();
+				Location targeteyelocation = player.getEyeLocation();
+				Route route = Route.readRoute(Cutscene.routedata, "defaultroute", new RouteLocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
+				routeexecutor.put(player, route, CameraType.GREEN);
+			}
+		}, this);*/
 	}
 	
 	public void onDisable() {
@@ -134,22 +142,6 @@ public final class Cutscene extends JavaPlugin {
 				cameramanager.unregisterHandler(player);
 				cameramanager.remove(player);
 			});
-		}
-	}
-	
-	public static Route readroute(String routename,RouteLocationPoint previouslocation) {
-		return Route.readRoute(routedata, routename, previouslocation);
-	}
-	
-	public static void saveroute(Route route) {
-		route.writeRoute(routedata);
-	}
-	
-	public static void saveRoutes() {
-		try {
-			Cutscene.routedata.save(routefile);
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 	

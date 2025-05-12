@@ -1,4 +1,4 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.command;
 
 import java.util.ArrayList;
 
@@ -6,9 +6,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-public class PlaysceneTabCompleter implements TabCompleter {
+public final class PlaysceneTabCompleter implements TabCompleter {
+	
+	private final YamlConfiguration routedata;
+	
+	public PlaysceneTabCompleter(YamlConfiguration routedata) {
+		this.routedata = routedata;
+	}
 	
 	@Override
 	public ArrayList<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -17,8 +24,8 @@ public class PlaysceneTabCompleter implements TabCompleter {
 			Player player = (Player) sender;
 			if (player.hasPermission("cutscene.playscene") || player.hasPermission("cutscene.playscene.other")) {
 				if (args.length == 1) {
-					for (String routename : Cutscene.routedata.getKeys(false)) {
-						if(routename.startsWith(args[0]) && (player.hasPermission("cutscene.playscene.other") || !Cutscene.routedata.isString(routename + ".world") || player.getWorld().getName().equals(Cutscene.routedata.getString(routename + ".world")))) {
+					for (String routename : this.routedata.getKeys(false)) {
+						if(routename.startsWith(args[0]) && (player.hasPermission("cutscene.playscene.other") || !this.routedata.isString(routename + ".world") || player.getWorld().getName().equals(routedata.getString(routename + ".world")))) {
 							tabcomplete.add(routename);
 						}
 					}
@@ -39,7 +46,7 @@ public class PlaysceneTabCompleter implements TabCompleter {
 			}
 		} else {
 			if (args.length == 1) {
-				for (String routename : Cutscene.routedata.getKeys(false)) {
+				for (String routename : this.routedata.getKeys(false)) {
 					if (routename.startsWith(args[0]))
 						tabcomplete.add(routename);
 				}

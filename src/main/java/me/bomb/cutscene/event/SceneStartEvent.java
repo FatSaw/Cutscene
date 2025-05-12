@@ -1,12 +1,13 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.event;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import me.bomb.camerautil.CameraType;
+import me.bomb.cutscene.route.AbstractRoute;
 
-public final class SceneEndEvent extends Event {
+public final class SceneStartEvent extends Event {
 	private static final HandlerList handlers = new HandlerList();
 
 	public HandlerList getHandlers() {
@@ -18,12 +19,11 @@ public final class SceneEndEvent extends Event {
 	}
 
 	private Player player;
-	private RouteProvider route;
+	private AbstractRoute route;
 	private CameraType cameratype;
-	private RouteProvider nextroute;
+	private boolean cancel = false;
 
-	protected SceneEndEvent(Player player, RouteProvider route, CameraType cameratype) {
-		super(true);
+	public SceneStartEvent(Player player, AbstractRoute route, CameraType cameratype) {
 		this.player = player;
 		this.route = route;
 		this.cameratype = cameratype;
@@ -33,7 +33,7 @@ public final class SceneEndEvent extends Event {
 		return player;
 	}
 
-	public RouteProvider getRoute() {
+	public AbstractRoute getRoute() {
 		return route;
 	}
 
@@ -41,15 +41,11 @@ public final class SceneEndEvent extends Event {
 		return cameratype;
 	}
 
-	protected RouteProvider getNextRoute() {
-		return nextroute;
+	public void setCanceled(boolean cancel) {
+		this.cancel = cancel;
 	}
 
-	public void setCameraType(CameraType cameratype) {
-		this.cameratype = cameratype;
-	}
-
-	public void setNextRoute(RouteProvider nextroute) {
-		this.nextroute = nextroute;
+	public boolean isCanceled() {
+		return cancel;
 	}
 }

@@ -1,14 +1,17 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.utils;
 
-class TheMath {
+public final class TheMath {
     private static final int[] SINE_TABLE_INT = new int[16384 + 1];
     private static final float SINE_TABLE_MIDPOINT;
+    
+    private TheMath() {
+    }
 
-    protected static float sin(float f) {
+    public static float sin(float f) {
         return lookup((int) (f * 10430.38) & 0xFFFF);
     }
 	
-    protected static float cos(float f) {
+    public static float cos(float f) {
         return lookup((int) (f * 10430.38 + 16384.0) & 0xFFFF);
     }
 	

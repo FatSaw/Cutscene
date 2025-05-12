@@ -1,17 +1,13 @@
-package me.bomb.cutscene;
-
-import org.bukkit.World;
+package me.bomb.cutscene.route;
 
 import me.bomb.camerautil.LocationPoint;
 
-public abstract class RouteProvider {
+public abstract class AbstractRoute {
 	public final String routename;
 	private int stage = 0;
-	public final World world;
 	
-	public RouteProvider(String routename,World world) {
+	public AbstractRoute(String routename) {
 		this.routename = routename;
-		this.world = world;
 	}
 	
 	/**

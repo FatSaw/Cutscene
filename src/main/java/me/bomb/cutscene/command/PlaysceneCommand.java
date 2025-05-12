@@ -1,26 +1,32 @@
-package me.bomb.cutscene;
+package me.bomb.cutscene.command;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import me.bomb.camerautil.CameraManager;
 import me.bomb.camerautil.CameraType;
-import me.bomb.cutscene.Route.RouteLocationPoint;
+import me.bomb.camerautil.LocationPoint;
+import me.bomb.cutscene.RouteExecutor;
+import me.bomb.cutscene.route.Route;
 
-public class PlaysceneCommand implements CommandExecutor {
+public final class PlaysceneCommand implements CommandExecutor {
 	
 	private final CameraManager cameramanager;
 	private final RouteExecutor routeexecutor;
 	private final int version;
+	private final YamlConfiguration lang, routedata;
 	
-	public PlaysceneCommand(CameraManager cameramanager, RouteExecutor routeexecutor, int version) {
+	public PlaysceneCommand(CameraManager cameramanager, RouteExecutor routeexecutor, int version, YamlConfiguration lang, YamlConfiguration routedata) {
 		this.cameramanager = cameramanager;
 		this.routeexecutor = routeexecutor;
 		this.version = version;
+		this.lang = lang;
+		this.routedata = routedata;
 	}
 
 	@Override
@@ -51,62 +57,55 @@ public class PlaysceneCommand implements CommandExecutor {
 						if (player.hasPermission("cutscene.playscene.other")) {
 							targetplayer = Bukkit.getPlayerExact(args[2]);
 							if (targetplayer == null) {
-								String msgplayeroffline = Cutscene.lang.getString(getLocale(player) + ".playeroffline",Cutscene.lang.getString("default.playeroffline", "")).replace("%player%", args[2]);
+								String msgplayeroffline = this.lang.getString(getLocale(player) + ".playeroffline",this.lang.getString("default.playeroffline", "")).replace("%player%", args[2]);
 								if (!msgplayeroffline.isEmpty()) player.sendMessage(msgplayeroffline);
 								return true;
 							}
 						} else {
-							String msgnopermissionother = Cutscene.lang.getString(getLocale(player) + ".nopermissionother",Cutscene.lang.getString("default.nopermissionother", ""));
+							String msgnopermissionother = this.lang.getString(getLocale(player) + ".nopermissionother",this.lang.getString("default.nopermissionother", ""));
 							if (!msgnopermissionother.isEmpty())
 								player.sendMessage(msgnopermissionother);
 							return true;
 						}
 					}
 					if (cameramanager.contains(targetplayer)) {
-						String msgalreadyplayingscene = Cutscene.lang.getString(getLocale(player) + ".alreadyplayingscene",Cutscene.lang.getString("default.alreadyplayingscene", ""));
+						String msgalreadyplayingscene = this.lang.getString(getLocale(player) + ".alreadyplayingscene",this.lang.getString("default.alreadyplayingscene", ""));
 						if (!msgalreadyplayingscene.isEmpty())
 							player.sendMessage(msgalreadyplayingscene);
 					} else {
 						boolean ok = false;
-						if (Cutscene.routedata.getKeys(false).contains(routename)) {
+						if (this.routedata.getKeys(false).contains(routename)) {
 							try {
 								Location targeteyelocation = targetplayer.getEyeLocation();
-								Route route = Route.readRoute(Cutscene.routedata, routename, new RouteLocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
-								if (route.world == null || route.world == targetplayer.getWorld()) {
-									if (type==null) {
-										String msgunknowncameratype = Cutscene.lang.getString(getLocale(player) + ".unknowncameratype",Cutscene.lang.getString("default.unknowncameratype", ""));
-										if (!msgunknowncameratype.isEmpty())
-											player.sendMessage(msgunknowncameratype);
-										ok = true;
-									} else {
-										routeexecutor.put(targetplayer, route, type);
-										String msgplayingscene = Cutscene.lang.getString(getLocale(player) + ".playingscene",Cutscene.lang.getString("default.playingscene", ""));
-										if (!msgplayingscene.isEmpty())
-											player.sendMessage(msgplayingscene);
-										ok = true;
-									}
+								Route route = new Route(this.routedata, routename, new LocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
+								if (type==null) {
+									String msgunknowncameratype = this.lang.getString(getLocale(player) + ".unknowncameratype",this.lang.getString("default.unknowncameratype", ""));
+									if (!msgunknowncameratype.isEmpty())
+										player.sendMessage(msgunknowncameratype);
+									ok = true;
 								} else {
-									String msgplayerinanotherworld = Cutscene.lang.getString(getLocale(player) + ".playerinanotherworld",Cutscene.lang.getString("default.playerinanotherworld", ""));
-									if (!msgplayerinanotherworld.isEmpty())
-										player.sendMessage(msgplayerinanotherworld);
+									routeexecutor.put(targetplayer, route, type);
+									String msgplayingscene = this.lang.getString(getLocale(player) + ".playingscene",this.lang.getString("default.playingscene", ""));
+									if (!msgplayingscene.isEmpty())
+										player.sendMessage(msgplayingscene);
 									ok = true;
 								}
 							} catch (IllegalArgumentException e) {
 							}
 						}
 						if (!ok) {
-							String msgunknownroute = Cutscene.lang.getString(getLocale(player) + ".unknownroute",Cutscene.lang.getString("default.unknownroute", ""));
+							String msgunknownroute = this.lang.getString(getLocale(player) + ".unknownroute",this.lang.getString("default.unknownroute", ""));
 							if (!msgunknownroute.isEmpty())
 								player.sendMessage(msgunknownroute);
 						}
 					}
 				} else {
-					String msgplayscenecommandhelp = Cutscene.lang.getString(getLocale(player) + ".playscenecommandhelp",Cutscene.lang.getString("default.playscenecommandhelp", ""));
+					String msgplayscenecommandhelp = this.lang.getString(getLocale(player) + ".playscenecommandhelp",this.lang.getString("default.playscenecommandhelp", ""));
 					if (!msgplayscenecommandhelp.isEmpty())
 						player.sendMessage(msgplayscenecommandhelp);
 				}
 			} else {
-				String msgnopermission = Cutscene.lang.getString(getLocale(player) + ".nopermission",Cutscene.lang.getString("default.nopermission", ""));
+				String msgnopermission = this.lang.getString(getLocale(player) + ".nopermission",this.lang.getString("default.nopermission", ""));
 				if (!msgnopermission.isEmpty())
 					player.sendMessage(msgnopermission);
 			}
@@ -133,21 +132,16 @@ public class PlaysceneCommand implements CommandExecutor {
 							break;
 						}
 						boolean ok = false;
-						if (Cutscene.routedata.getKeys(false).contains(routename)) {
+						if (this.routedata.getKeys(false).contains(routename)) {
 							try {
 								Location targeteyelocation = targetplayer.getEyeLocation();
-								Route route = Route.readRoute(Cutscene.routedata, routename, new RouteLocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
-								if (route.world == null || route.world == targetplayer.getWorld()) {
-									if (type==null) {
-										sender.sendMessage("Unknown camera type");
-										ok = true;
-									} else {
-										routeexecutor.put(targetplayer, route, type);
-										sender.sendMessage("Start cutscene");
-										ok = true;
-									}
+								Route route = new Route(this.routedata, routename, new LocationPoint(targeteyelocation.getX(), targeteyelocation.getY(), targeteyelocation.getZ(), targeteyelocation.getYaw(), targeteyelocation.getPitch()));
+								if (type==null) {
+									sender.sendMessage("Unknown camera type");
+									ok = true;
 								} else {
-									sender.sendMessage("Target player in another world");
+									routeexecutor.put(targetplayer, route, type);
+									sender.sendMessage("Start cutscene");
 									ok = true;
 								}
 							} catch (IllegalArgumentException e) {

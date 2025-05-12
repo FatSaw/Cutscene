@@ -12,6 +12,9 @@ import org.bukkit.entity.Player;
 
 import me.bomb.camerautil.CameraManager;
 import me.bomb.camerautil.CameraType;
+import me.bomb.cutscene.event.SceneEndEvent;
+import me.bomb.cutscene.event.SceneStartEvent;
+import me.bomb.cutscene.route.AbstractRoute;
 
 public class RouteExecutor extends Thread {
 	
@@ -72,14 +75,14 @@ public class RouteExecutor extends Thread {
 		}
 	}
 	
-	public void put(Player player,RouteProvider route,CameraType camera) {
+	public void put(Player player,AbstractRoute route,CameraType camera) {
 		routes.put(player.getUniqueId(), new RouteData(route, camera));
 	}
 	
 	private static final class RouteData {
-		private RouteProvider routeprovider;
+		private AbstractRoute routeprovider;
 		private CameraType camera;
-		private RouteData(RouteProvider routeprovider,CameraType camera) {
+		private RouteData(AbstractRoute routeprovider,CameraType camera) {
 			this.routeprovider = routeprovider;
 			this.camera = camera;
 		}
